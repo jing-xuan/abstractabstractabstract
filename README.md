@@ -15,3 +15,5 @@ STATES -> an array which contains all the states. the index of the state shall s
 STATE -> a struct which contains: 1. CESK* of the current state, 2. the prev state 3. the possible next states
 
 At each PC, create a state which stores the current CESK*, and do a step to the next instruction.
+
+To make life easier, let's not restrict ourselves to using a set number of registers etc. 
