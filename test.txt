@@ -737,7 +737,7 @@ let RUNNING = true;
 // constant propagation
 const NUMBER = ["NUMBER", 0];
 const BOOL = ["BOOL", 0];
-const FUNCTION = ["FUNCTION", 0];
+const CLOSURE = ["CLOSURE", 0];
 
 function get_value_type(val) {
     if (val == NUMBER) {
@@ -872,8 +872,11 @@ function cesk_run() {
     }
     
     M[LDF] = () => {
-        FUNCTION[1] = P[PC + 2];
-        OS.push(FUNCTION);
+        const env_copy = new Map(ENV);
+        const env_addr = alloc();
+        STORE.set(env_addr, env_copy);
+        CLOSURE[1] = [P[PC + 2], env_addr];
+        OS.push(CLOSURE);
         PC += 4;
     }
     
@@ -903,13 +906,24 @@ function cesk_run() {
 }
 
 P = parse_and_compile(`
-    const x = 3;
-    const y = 4;
-    const z = x + y;
+    const z= 0;
+    function f(x, y) {
+        const z = 2;
+        return x + y;
+    }
+    const x = 1;
+    const y = 2;
+    f(x, y);
 `);
 print_program(P);
 
 cesk_run();
+
+const test = new Map();
+test.set("a", 1);
+
+
+
 
 
 
