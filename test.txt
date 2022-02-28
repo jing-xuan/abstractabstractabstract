@@ -724,20 +724,25 @@ let PC = 8;
 // STORE is map which maps between addresses and values
 let STORE = new Map();
 // OS is the operand stack being used for computation
-var OS = []; 
+let OS = []; 
 // ENV is a map which maps between names and addresses
 let ENV = new Map();
 // STATES is the array containing all states that have been explored
 let STATES = [];
+// KONT is the address that points to the continuation
+let KONT = "";
 // ENV is the map that maps names to addresses
 let RUNNING = true;
 
 
 // consider adding CHANGED_NUMBER and CHANGED_BOOL for tracking 
-// constant propagation
+// label, placeholder value
 const NUMBER = ["NUMBER", 0];
+// label, placeholder value
 const BOOL = ["BOOL", 0];
-const CLOSURE = ["CLOSURE", 0];
+// label, function address, env address
+const FUNCTION = ["FUNCTION", 0];
+
 
 function get_value_type(val) {
     if (val == NUMBER) {
@@ -763,7 +768,8 @@ function display_state(state) {
     console.log("STORE");
     state[2].forEach(log_map);
     console.log("\n");
-    console.log("TIME: " + state[3]);
+    console.log("KONT*: " + state[3] + "\n");
+    console.log("TIME: " + state[4]);
     console.log("-------------------");
     
 }
@@ -780,6 +786,13 @@ function cesk_run() {
         const addr = TIME + "." + counter;
         counter += 1;
         return addr;
+    }
+    
+    function tick() {
+        // RESET THE COUNTER
+        counter = 0;
+        const num_args = P[PC + 1];
+        TIME = (P[PC - (num_args * 2) - 1]);
     }
 
     const M = [];
@@ -862,7 +875,13 @@ function cesk_run() {
     // given the nam 
     M[ASSIGN] = () => {
         const addr = alloc();
-        ENV.set(P[PC + 1], addr);
+        if (ENV.get(P[PC + 1]) == undefined) {
+            ENV.set(P[PC + 1], [addr]);
+        } else {
+            const cur_val = ENV.get(P[PC + 1]);
+            cur_val.push(addr);
+            ENV.set(P[PC + 1], cur_val);
+        }
         STORE.set(addr, OS.pop());
         PC += 2;
     }
@@ -872,18 +891,60 @@ function cesk_run() {
     }
     
     M[LDF] = () => {
-        const env_copy = new Map(ENV);
-        const env_addr = alloc();
-        STORE.set(env_addr, env_copy);
-        CLOSURE[1] = [P[PC + 2], env_addr];
-        OS.push(CLOSURE);
+        FUNCTION[1] = P[PC + 2];
+        OS.push(FUNCTION);
         PC += 4;
     }
     
     M[LD] = () => {
-        OS.push(STORE.get(ENV.get(P[PC + 1])));
+        const addr = ENV.get(P[PC + 1]);
+        const val = STORE.get(addr[addr.length - 1]);
+        OS.push(val);
+        // OS.push((STORE.get(ENV.get(P[PC + 1]))));
         PC += 2;
     }
+    
+    M[CALL] = () => {
+        // 1. store a continuation that contains the state (PC, clone of env and store, and time)
+        // 2. tick()
+        // 3. jump to the function
+        const num_args = P[PC + 1];
+        for (var i = 0; i < num_args; i++) {
+            OS.pop();
+        }
+        const func = OS.pop();
+        
+        const control = [PC + 2, JSON.parse(JSON.stringify(OS))];
+        const env_copy = JSON.parse(JSON.stringify(Array.from(ENV)));
+        const store_copy = JSON.parse(JSON.stringify(Array.from(STORE)));
+        console.log(store_copy);
+        const kont_copy = KONT;
+        const kont_state = [control, env_copy, store_copy, KONT, TIME];
+        
+        const kont_addr = alloc();
+        STORE.set(kont_addr, ["KONT", kont_state]);
+        KONT = kont_addr;
+        tick();
+        PC = func[1];
+    }
+    
+    M[RTN] = () => {
+        const kont = STORE.get(KONT);
+        if (kont == undefined) {
+            RUNNING = false;
+            console.log("FINISHED EXECUTION");
+        } else {
+            PC = kont[1][0][0];
+            OS = JSON.parse(JSON.stringify(kont[1][0][1]));
+            ENV = new Map(JSON.parse(JSON.stringify(kont[1][1])));
+            STORE = new Map(JSON.parse(JSON.stringify(kont[1][2])));
+            KONT = kont[1][3];
+            TIME = kont[1][4][0];
+            counter = kont[1][4][1];
+            console.log("next PC is " + PC);
+        }
+    }
+    
     
     //returns an address I guess? for now just increment a counter. 
     
@@ -893,35 +954,29 @@ function cesk_run() {
         var env_copy = new Map(ENV);
         var store_copy = new Map(STORE);
         display(OS);
-        var state = [control, env_copy, store_copy, TIME];
+        var state = [control, env_copy, store_copy, KONT, [TIME, counter]];
         STATES.push(state); // some very weird behaviour here that is not replicable outside
         
         M[P[PC]]();
         display_state(state);
     }
     
-    for (var i = 0; i < 11; i++) {
+    while (RUNNING) {
         step();
     }
 }
 
 P = parse_and_compile(`
     const z= 0;
-    function f(x, y) {
-        const z = 2;
-        return x + y;
+    function f() {
+        const z = 1;
+        return 3;
     }
-    const x = 1;
-    const y = 2;
-    f(x, y);
+    f();
 `);
 print_program(P);
 
 cesk_run();
-
-const test = new Map();
-test.set("a", 1);
-
 
 
 
