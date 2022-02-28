@@ -66,34 +66,34 @@ function is_undefined_expression(stmt) {
 // and have "name" and "value" properties
 
 function is_constant_declaration(stmt) {
-   return is_tagged_list(stmt, "constant_declaration");
+  return is_tagged_list(stmt, "constant_declaration");
 }
 function declaration_symbol(component) {
-   return symbol_of_name(head(tail(component)));
+  return symbol_of_name(head(tail(component)));
 }
 function constant_declaration_value(stmt) {
-   return head(tail(tail(stmt)));
+  return head(tail(tail(stmt)));
 }
 function make_constant_declaration(name, value_expression) {
     return list("constant_declaration", name, value_expression);
 }
 function is_declaration(component) {
     return is_tagged_list(component, "constant_declaration") ||
-           is_tagged_list(component, "variable_declaration") ||
-           is_tagged_list(component, "function_declaration");
+          is_tagged_list(component, "variable_declaration") ||
+          is_tagged_list(component, "function_declaration");
 }
 
 // applications are tagged with "application"
 // and have "operator" and "operands"
 
 function is_application(component) {
-   return is_tagged_list(component, "application");
+  return is_tagged_list(component, "application");
 }
 function function_expression(component) {
-   return head(tail(component));
+  return head(tail(component));
 }
 function arg_expressions(component) {
-   return head(tail(tail(component)));
+  return head(tail(tail(component)));
 }
 
 // we distinguish primitive applications by their
@@ -101,7 +101,7 @@ function arg_expressions(component) {
 
 function is_operator_combination(component) {	    
     return is_unary_operator_combination(component) ||
-           is_binary_operator_combination(component);
+          is_binary_operator_combination(component);
 }
 function is_unary_operator_combination(component) {	    
     return is_tagged_list(component, "unary_operator_combination");
@@ -154,13 +154,13 @@ function make_conditional_expression(expr1, expr2, expr3) {
 // have a list of "parameters" and a "body" statement
 
 function is_lambda_expression(component) {
-   return is_tagged_list(component, "lambda_expression");
+  return is_tagged_list(component, "lambda_expression");
 }
 function lambda_parameter_symbols(component) {
-   return map(symbol_of_name, head(tail(component)));
+  return map(symbol_of_name, head(tail(component)));
 }
 function lambda_body(component) {
-   return head(tail(tail(component)));
+  return head(tail(tail(component)));
 }
 function make_lambda_expression(parameters, body) {
     return list("lambda_expression", parameters, body);
@@ -193,45 +193,45 @@ function function_declaration_body(component) {
 }
 function function_decl_to_constant_decl(component) {
     return make_constant_declaration(
-               function_declaration_name(component),
-               make_lambda_expression(
-                   function_declaration_parameters(component),
-                   function_declaration_body(component)));
+              function_declaration_name(component),
+              make_lambda_expression(
+                  function_declaration_parameters(component),
+                  function_declaration_body(component)));
 }
 
 // sequences of statements are just represented
 // by tagged lists of statements by the parser.
 
 function is_sequence(stmt) {
-   return is_tagged_list(stmt, "sequence");
+  return is_tagged_list(stmt, "sequence");
 }
 function make_sequence(stmts) {
-   return list("sequence", stmts);
+  return list("sequence", stmts);
 }
 function sequence_statements(stmt) {   
-   return head(tail(stmt));
+  return head(tail(stmt));
 }
 function is_empty_sequence(stmts) {
-   return is_null(stmts);
+  return is_null(stmts);
 }
 function is_last_statement(stmts) {
-   return is_null(tail(stmts));
+  return is_null(tail(stmts));
 }
 function first_statement(stmts) {
-   return head(stmts);
+  return head(stmts);
 }
 function rest_statements(stmts) {
-   return tail(stmts);
+  return tail(stmts);
 }
 
 // functions return the value that results from
 // evaluating their expression
 
 function is_return_statement(stmt) {
-   return is_tagged_list(stmt, "return_statement");
+  return is_tagged_list(stmt, "return_statement");
 }
 function return_statement_expression(stmt) {
-   return head(tail(stmt));
+  return head(tail(stmt));
 }
 
 // OP-CODES
@@ -463,14 +463,14 @@ function parse_and_compile(string) {
     
     function scan_out_declarations(component) {
         return is_sequence(component)
-               ? accumulate(
+              ? accumulate(
                      append,
                      null,
                      map(scan_out_declarations,
                          sequence_statements(component)))
-               : is_declaration(component)
-               ? list(declaration_symbol(component))
-               : null;
+              : is_declaration(component)
+              ? list(declaration_symbol(component))
+              : null;
     }
     
     // compile_arguments compiles the arguments and
@@ -499,15 +499,15 @@ function parse_and_compile(string) {
                                          first_operand(expr),
                                          second_operand(expr),
                                          make_literal(false)), 
-                           index_table,
-                           false);
+                          index_table,
+                          false);
         } else {
             return compile(make_conditional_expression(
                                          first_operand(expr),
                                          make_literal(true),
                                          second_operand(expr)),
-                           index_table,
-                           false);
+                          index_table,
+                          false);
         }
     }
     
@@ -560,9 +560,9 @@ function parse_and_compile(string) {
             
     function compile_application(expr, index_table) {    
         const max_stack_operator = compile(function_expression(expr),
-                                       index_table, false);
+                                      index_table, false);
         const max_stack_operands = compile_arguments(arg_expressions(expr),
-                                       index_table);
+                                      index_table);
         add_unary_instruction(CALL, length(arg_expressions(expr)));
         return math_max(max_stack_operator, max_stack_operands + 1);
     }
@@ -574,11 +574,11 @@ function parse_and_compile(string) {
         const parameters = lambda_parameter_symbols(expr);
         const extended_index_table =
             accumulate((s, it) => extend_index_table(it, s),
-                       index_table,
-                       append(reverse(locals), 
+                      index_table,
+                      append(reverse(locals), 
                               reverse(parameters)));
         add_ternary_instruction(LDF, NaN, NaN, 
-                               length(parameters) + length(locals));
+                              length(parameters) + length(locals));
         const max_stack_size_address = insert_pointer - 3;
         const address_address = insert_pointer - 2;
         push_to_compile(make_to_compile_task(
@@ -593,11 +593,11 @@ function parse_and_compile(string) {
             return 0;
         } else if (is_last_statement(statements)) {
             return compile(first_statement(statements), 
-                           index_table, insert_flag);
+                          index_table, insert_flag);
         } else {
             const m_1 = compile(first_statement(statements), 
                                 index_table, false);
-            add_nullary_instruction(POP);
+            // add_nullary_instruction(POP);
             const m_2 = compile(make_sequence(rest_statements(statements)), 
                                 index_table, insert_flag);
             return math_max(m_1, m_2);
@@ -609,8 +609,8 @@ function parse_and_compile(string) {
         const index = index_of(index_table, name);
         const max_stack_size = compile(constant_declaration_value(expr),
                                  index_table, false);
-        add_unary_instruction(ASSIGN, index);
-        add_nullary_instruction(LDCU);
+        add_unary_instruction(ASSIGN, name);
+        // add_nullary_instruction(LDCU);
         return max_stack_size;
     }
     
@@ -646,8 +646,7 @@ function parse_and_compile(string) {
             max_stack_size =
             compile_lambda_expression(expr, index_table);
         } else if (is_name(expr)) {
-            add_unary_instruction(LD, index_of(index_table, 
-                                  symbol_of_name(expr)));
+            add_unary_instruction(LD,symbol_of_name(expr));
             max_stack_size = 1;
         } else if (is_sequence(expr)) {
             max_stack_size =
@@ -672,14 +671,14 @@ function parse_and_compile(string) {
             if (is_return_statement(expr)) {
                 add_nullary_instruction(RTN);
             } else if (toplevel && 
-                       (is_literal(expr) ||
+                      (is_literal(expr) ||
                         is_undefined_expression(expr) ||
                         is_application(expr) ||
                         is_operator_combination(expr))
                       ) {
                 add_nullary_instruction(RTN);
             } else {
-                add_nullary_instruction(LDCU);
+                // add_nullary_instruction(LDCU);
                 max_stack_size = max_stack_size + 1;
                 add_nullary_instruction(RTN);
             } 
@@ -722,133 +721,195 @@ function parse_and_compile(string) {
 let P = [];
 // PC is program counter: index of the next instruction
 let PC = 8;
-// STORE is array containing all dynamically allocated data structures
-let STORE = [];
+// STORE is map which maps between addresses and values
+let STORE = new Map();
 // OS is the operand stack being used for computation
 var OS = []; 
+// ENV is a map which maps between names and addresses
+let ENV = new Map();
 // STATES is the array containing all states that have been explored
-var STATES = [];
+let STATES = [];
+// ENV is the map that maps names to addresses
 let RUNNING = true;
 
-const M = [];
 
 // consider adding CHANGED_NUMBER and CHANGED_BOOL for tracking 
 // constant propagation
-const NUMBER = 0;
-const BOOL = 1;
+const NUMBER = ["NUMBER", 0];
+const BOOL = ["BOOL", 0];
+const FUNCTION = ["FUNCTION", 0];
 
-
-M[LDCN] = () => {
-    OS.push(NUMBER);
-    PC += 2;
-};
-
-
-M[LDCB] = () => {
-    OS.push(BOOL);
-    PC += 2;
-}
-                
-M[PLUS] = () => {
-    OS.pop();
-    PC += 1;
+function get_value_type(val) {
+    if (val == NUMBER) {
+        return "NUMBER";
+    }
+    if (val == BOOL) {
+        return "BOOL";
+    }
 }
 
-M[MINUS] = () => {
-    OS.pop();
-    PC += 1;
-}
-
-M[TIMES] = () => {
-    OS.pop();
-    PC += 1;
-}
-            
-M[EQUAL] = () => {
-    OS.pop();
-    OS.pop();
-    OS.push(BOOL);
-    PC += 1;
-}    
-
-M[LESS] = () => {
-    OS.pop();
-    OS.pop();
-    OS.push(BOOL);
-    PC += 1;
-}
-
-M[GREATER] = () => {
-    OS.pop();
-    OS.pop();
-    OS.push(BOOL);
-    PC += 1;
-}
-
-M[GEQ] = () => {
-    OS.pop();
-    OS.pop();
-    OS.push(BOOL);
-    PC += 1;
-}
-
-M[LEQ] = () => {
-    OS.pop();
-    OS.pop();
-    OS.push(BOOL);
-    PC += 1;
-}
-
-M[NOT] = () => {
-    PC += 1;
-}
-
-//ignore the possibility of divide by 0 for now
-M[DIV] = () => {
-    OS.pop();
-    PC += 1;
-}
-
-M[POP] = () => {
-    PC += 1;
-}
-                   
-function cesk_run() {
+function display_state(state) {
     
-    let prev_state = -1;
-    let next_state = 0;
-    
-    function step() {
-        M[P[PC]]();
-        display(OS);
-        var CONTROL = {
-            "PC": PC,
-            "OS": OS
-        }
-        var STATE = {
-            "CONTROL": CONTROL
-        }
-        STATES.push(STATE); // some very weird behaviour here that is not replicable outside
-        display(STATE);
+    function log_map(val, key, map) {
+        console.log(key + " -> " + val);
     }
     
-    for (var i = 0; i < 3; i++) {
+    console.log("-------------------");
+    console.log("CONTROL")
+    console.log("PC:" + state[0][0] + " " + get_name(P[state[0][0]]) + "\n");
+    console.log("ENV");
+    state[1].forEach(log_map);
+    console.log("\n");
+    console.log("STORE");
+    state[2].forEach(log_map);
+    console.log("\n");
+    console.log("TIME: " + state[3]);
+    console.log("-------------------");
+    
+}
+
+function cesk_run() {
+
+    let prev_state = -1;
+    let next_state = 0;
+    let TIME = "0";
+    
+    let counter = 0;
+    
+    function alloc() {
+        const addr = TIME + "." + counter;
+        counter += 1;
+        return addr;
+    }
+
+    const M = [];
+    
+    M[LDCN] = () => {
+        OS.push(NUMBER);
+        PC += 2;
+    };
+    
+    
+    M[LDCB] = () => {
+        OS.push(BOOL);
+        PC += 2;
+    };
+                    
+    M[PLUS] = () => {
+        OS.pop();
+        PC += 1;
+    };
+    
+    M[MINUS] = () => {
+        OS.pop();
+        PC += 1;
+    };
+    
+    M[TIMES] = () => {
+        OS.pop();
+        PC += 1;
+    };
+                
+    M[EQUAL] = () => {
+        OS.pop();
+        OS.pop();
+        OS.push(BOOL);
+        PC += 1;
+    };   
+    
+    M[LESS] = () => {
+        OS.pop();
+        OS.pop();
+        OS.push(BOOL);
+        PC += 1;
+    };
+    
+    M[GREATER] = () => {
+        OS.pop();
+        OS.pop();
+        OS.push(BOOL);
+        PC += 1;
+    };
+    
+    M[GEQ] = () => {
+        OS.pop();
+        OS.pop();
+        OS.push(BOOL);
+        PC += 1;
+    };
+    
+    M[LEQ] = () => {
+        OS.pop();
+        OS.pop();
+        OS.push(BOOL);
+        PC += 1;
+    };
+    
+    M[NOT] = () => {
+        PC += 1;
+    };
+    
+    //ignore the possibility of divide by 0 for now
+    M[DIV] = () => {
+        OS.pop();
+        PC += 1;
+    };
+    
+    M[POP] = () => {
+        PC += 1;
+    };
+    
+    // given the nam 
+    M[ASSIGN] = () => {
+        const addr = alloc();
+        ENV.set(P[PC + 1], addr);
+        STORE.set(addr, OS.pop());
+        PC += 2;
+    }
+    
+    M[RTN] = () => {
+        PC += 1;
+    }
+    
+    M[LDF] = () => {
+        FUNCTION[1] = P[PC + 2];
+        OS.push(FUNCTION);
+        PC += 4;
+    }
+    
+    M[LD] = () => {
+        OS.push(STORE.get(ENV.get(P[PC + 1])));
+        PC += 2;
+    }
+    
+    //returns an address I guess? for now just increment a counter. 
+    
+    
+    function step() {
+        var control = [PC, JSON.parse(JSON.stringify(OS))];
+        var env_copy = new Map(ENV);
+        var store_copy = new Map(STORE);
+        display(OS);
+        var state = [control, env_copy, store_copy, TIME];
+        STATES.push(state); // some very weird behaviour here that is not replicable outside
+        
+        M[P[PC]]();
+        display_state(state);
+    }
+    
+    for (var i = 0; i < 11; i++) {
         step();
     }
 }
 
 P = parse_and_compile(`
-1 + 1;
+    const x = 3;
+    const y = 4;
+    const z = x + y;
 `);
 print_program(P);
 
 cesk_run();
-
-
-
-
-
-
 
 
 
