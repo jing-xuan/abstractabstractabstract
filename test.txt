@@ -916,10 +916,8 @@ function cesk_run() {
         
         const control = [PC + 2, JSON.parse(JSON.stringify(OS))];
         const env_copy = JSON.parse(JSON.stringify(Array.from(ENV)));
-        const store_copy = JSON.parse(JSON.stringify(Array.from(STORE)));
-        console.log(store_copy);
         const kont_copy = KONT;
-        const kont_state = [control, env_copy, store_copy, KONT, TIME];
+        const kont_state = [control, env_copy, KONT, [TIME, counter]];
         
         const kont_addr = alloc();
         STORE.set(kont_addr, ["KONT", kont_state]);
@@ -937,10 +935,9 @@ function cesk_run() {
             PC = kont[1][0][0];
             OS = JSON.parse(JSON.stringify(kont[1][0][1]));
             ENV = new Map(JSON.parse(JSON.stringify(kont[1][1])));
-            STORE = new Map(JSON.parse(JSON.stringify(kont[1][2])));
-            KONT = kont[1][3];
-            TIME = kont[1][4][0];
-            counter = kont[1][4][1];
+            KONT = kont[1][2];
+            TIME = kont[1][3][0];
+            counter = kont[1][3][1];
             console.log("next PC is " + PC);
         }
     }
@@ -967,18 +964,17 @@ function cesk_run() {
 }
 
 P = parse_and_compile(`
-    const z= 0;
     function f() {
-        const z = 1;
-        return 3;
+        function t() {
+            return 4;
+        }
+        return t();
     }
+    const z = 3;
     f();
 `);
 print_program(P);
 
 cesk_run();
-
-
-
 
 
