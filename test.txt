@@ -836,9 +836,8 @@ M[CALL] = () => {
     }
     // display_STORE();
     max_name = closure[3];
-    TIME = TIME + "." + PC;
     counter = 0;
-    const kont_addr = TIME + ".kont";
+    const kont_addr = TIME + "." + PC + ".kont";
     const kont_env_addr = kont_addr + ".env";
     const kont_os_addr = kont_addr + ".os";
     const kont_os = JSON.parse(JSON.stringify(OS));
@@ -848,6 +847,7 @@ M[CALL] = () => {
     STORE.set(kont_addr, kont);
     KONT = kont_addr;
     PC = closure[1];
+    TIME = TIME + "." + PC;
 }
 
 M[RTN] = () => {
@@ -954,7 +954,7 @@ P = parse_and_compile(`
         return x + y;
     }
     f(x, y);
-    1+2;
+    // 1+2;
 `);
 
 print_program(P);
