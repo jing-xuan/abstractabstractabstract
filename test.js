@@ -828,25 +828,64 @@ function load_primitives () {
     function applyNumNumBinop (f) {
         let b = OS.pop()
         let a = OS.pop()
+        let c = UNUM
         if (a != UNUM && b != UNUM) {
             let r = f(a, b)
             if (r >= MIN_NUM && r <= MAX_NUM) {
-                return r
+                c = r
             }
         }
-        return UNUM
+        OS.push(c)
+        PC += 1
     }
 
     M[PLUS] = () => {
-        OS.push(OS.pop() + OS.pop())
-        PC += 1
+        applyNumNumBinop((x, y) => x + y)
     }
     M[MINUS] = () => {
-        OS.push(-OS.pop() + OS.pop())
-        PC += 1
+        applyNumNumBinop((x, y) => x - y)
     }
     M[TIMES] = () => {
-        OS.push(OS.pop() * OS.pop())
+        applyNumNumBinop((x, y) => x * y)
+    }
+    M[DIV] = () => {
+        applyNumNumBinop((x, y) => x / y)
+    }
+
+    function applyNumBoolBinop (f) {
+        let b = OS.pop()
+        let a = OS.pop()
+        let c = UBOOL
+        if (a != UNUM && b != UNUM) {
+            c = f(a, b)
+        }
+        OS.push(c)
+        PC += 1
+    }
+
+    M[EQUAL] = () => {
+        applyNumBoolBinop((x, y) => x == y)
+    }
+    M[LESS] = () => {
+        applyNumBoolBinop((x, y) => x < y)
+    }
+    M[GREATER] = () => {
+        applyNumBoolBinop((x, y) => x > y)
+    }
+    M[GEQ] = () => {
+        applyNumBoolBinop((x, y) => x >= y)
+    }
+    M[LEQ] = () => {
+        applyNumBoolBinop((x, y) => x <= y)
+    }
+
+    M[NOT] = () => {
+        let a = OS.pop()
+        let r = UBOOL
+        if (a != UBOOL) {
+            r = !a
+        }
+        OS.push(r)
         PC += 1
     }
 }
@@ -1000,9 +1039,8 @@ P = parse_and_compile(`
     const x = 1;
     const y = 2;
     function f(x, y) {
-        const z=3;
-        const zz=3;
-        return z;
+        const z=5;
+        return x+y-2*3+z;
     }
     f(x, y);
 `)
