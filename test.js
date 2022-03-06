@@ -796,6 +796,7 @@ function transition (state) {
     let PC = state[0]
     // OS is operand stack, array where last element is top of stack
     // Stores numbers, bools and closures
+    // Closures represented by label, func PC, and the addr to ENV
     let OS = copyArr(state[1])
     // ENV is a map which maps names to addresses
     let ENV = copyMap(state[2])
@@ -811,10 +812,7 @@ function transition (state) {
     // Possible next states
     let next_states = []
 
-    // CLOSURE represented by label, func PC, and the addr to ENV
-    const CLOSURE = ['CLOSURE', 0, 0]
-
-    let M = []
+    let M = [] // Maps opcodes to functions that set next_states
 
     // Adds to M simple instructions (opcode 0-14) that only manipulate OS and PC
     function load_primitives () {
@@ -917,7 +915,7 @@ function transition (state) {
         MM.forEach((v, index) => {
             M[index] = () => {
                 v() // Apply transition
-                next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter]) // Save as next state
+                next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]] // Save as next state
             }
         })
     }
@@ -941,11 +939,12 @@ function transition (state) {
         }
         const env_addr = fun_addr + '.env'
         STORE.set(env_addr, copyArr(Array.from(new_env)))
-        CLOSURE[1] = fun_addr
-        CLOSURE[2] = env_addr
-        OS.push(CLOSURE)
+        const closure = ['CLOSURE']
+        closure[1] = fun_addr
+        closure[2] = env_addr
+        OS.push(closure)
         PC += 4
-        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[CALL] = () => {
@@ -977,7 +976,7 @@ function transition (state) {
         KONT = kont_addr
         PC = closure[1]
         TIME = TIME + '.' + PC
-        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[RTN] = () => {
@@ -992,7 +991,7 @@ function transition (state) {
         OS.push(top_val)
         ENV = new Map(STORE.get(kont_env_addr))
         PC = kont[0] + 1
-        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[LD] = () => {
@@ -1001,7 +1000,7 @@ function transition (state) {
         const val = STORE.get(store_addr)
         OS.push(val)
         PC += 2
-        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[ASSIGN] = () => {
@@ -1012,11 +1011,12 @@ function transition (state) {
         const store_addr = ENV.get(env_name)
         STORE.set(store_addr, val)
         PC += 2
-        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[DONE] = () => {
         console.log('FINISHED EXECUTION')
+        next_states = []
     }
 
     if (M[P[PC]] == undefined) {
