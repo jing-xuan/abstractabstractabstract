@@ -702,8 +702,6 @@ function parse_and_compile(string) {
     return machine_code;
 }
 
-
-
 // CESK STARTS HERE
 
 // "registers" are the global variables of our machine. 
@@ -737,6 +735,48 @@ let RUNNING = true;
 
 let M = [];
 
+
+// Adds simple arithmetic functions to M
+function load_primitives(){
+    M[LDCN] = () => {
+        OS.push(P[PC+1]) // value
+        PC += 2;
+    }
+    
+    M[LDCB] = () => {
+        OS.push(P[PC+1]) // value
+        PC += 2;
+    }
+    
+    M[LDCU] = () => {
+        OS.push(undefined);
+        PC += 1;
+    }
+    
+    const MAX_NUM = 10
+    const MIN_NUM = -10
+    const UNUM = "unum" // Unknown number
+    const UBOOL = "ubool" // Unknown bool
+
+    function applyNumNumBinop(f){
+        let b = OS.pop()
+        let a = OS.pop()
+        if (a!=UNUM && b!=UNUM) {
+            let r = f(a,b)
+            if(r >= MIN_NUM && r <= MAX_NUM) {
+                return r
+            }
+        }
+        return UNUM;
+    }
+
+    M[PLUS] = () =>    { OS.push(OS.pop()+OS.pop()); PC +=1; };	
+    M[MINUS] = () =>   { OS.push(-OS.pop()+OS.pop()); PC +=1; };		
+    M[TIMES] = () =>   { OS.push(OS.pop()*OS.pop()); PC +=1;};	
+
+}
+load_primitives()
+
 // gives the address
 function alloc() {
     counter += 1;
@@ -747,9 +787,7 @@ M[START] = () => {
     PC += 1;
 }
 
-M[PLUS] = () =>    { OS.push(OS.pop()+OS.pop()); PC +=1; };	
-M[MINUS] = () =>   { OS.push(-OS.pop()+OS.pop()); PC +=1; };		
-M[TIMES] = () =>   { OS.push(OS.pop()*OS.pop()); PC +=1;};		
+	
 
 // load a closure into the OS to either CALL or ASSIGN
 // extend the current env by num_consts and store
@@ -813,21 +851,6 @@ M[RTN] = () => {
     OS.push(top_val);
     ENV = new Map(STORE.get(kont_env_addr));
     PC = kont[0] + 1;
-}
-
-M[LDCN] = () => {
-    OS.push(P[PC+1]) // value
-    PC += 2;
-}
-
-M[LDCB] = () => {
-    OS.push(P[PC+1]) // value
-    PC += 2;
-}
-
-M[LDCU] = () => {
-    OS.push(undefined);
-    PC += 1;
 }
 
 M[LD] = () => {
