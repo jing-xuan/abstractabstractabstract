@@ -933,7 +933,7 @@ function transition (state) {
     M[LDF] = () => {
         const fun_addr = P[PC + 2]
         const num_consts = P[PC + 3]
-        const new_env = new Map(copyArr(Array.from(ENV)))
+        const new_env = copyMap(ENV)
         // extend the new_env by num_consts
         for (var i = ENV.size; i < ENV.size + num_consts; i++) {
             new_env.set(i, alloc())
