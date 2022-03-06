@@ -790,8 +790,6 @@ let P = []
 
 let initialState = [0, [], new Map(), new Map(), '', '0', 0]
 
-let RUNNING = true
-
 // Transition from one state to array of new states
 function transition (state) {
     // PC is program counter: index of the next instruction
@@ -810,24 +808,29 @@ function transition (state) {
     // counter for assigning the addresses in the current function
     let counter = state[6]
 
+    // Possible next states
+    let next_states = []
+
     // CLOSURE represented by label, func PC, and the addr to ENV
     const CLOSURE = ['CLOSURE', 0, 0]
 
     let M = []
 
-    // Adds simple instructions to M that only manipulate OS and PC
+    // Adds to M simple instructions (opcode 0-14) that only manipulate OS and PC
     function load_primitives () {
-        M[LDCN] = () => {
+        let MM = []
+
+        MM[LDCN] = () => {
             OS.push(P[PC + 1]) // value
             PC += 2
         }
 
-        M[LDCB] = () => {
+        MM[LDCB] = () => {
             OS.push(P[PC + 1]) // value
             PC += 2
         }
 
-        M[LDCU] = () => {
+        MM[LDCU] = () => {
             OS.push(undefined)
             PC += 1
         }
@@ -851,16 +854,16 @@ function transition (state) {
             PC += 1
         }
 
-        M[PLUS] = () => {
+        MM[PLUS] = () => {
             applyNumNumBinop((x, y) => x + y)
         }
-        M[MINUS] = () => {
+        MM[MINUS] = () => {
             applyNumNumBinop((x, y) => x - y)
         }
-        M[TIMES] = () => {
+        MM[TIMES] = () => {
             applyNumNumBinop((x, y) => x * y)
         }
-        M[DIV] = () => {
+        MM[DIV] = () => {
             applyNumNumBinop((x, y) => x / y)
         }
 
@@ -875,23 +878,23 @@ function transition (state) {
             PC += 1
         }
 
-        M[EQUAL] = () => {
+        MM[EQUAL] = () => {
             applyNumBoolBinop((x, y) => x == y)
         }
-        M[LESS] = () => {
+        MM[LESS] = () => {
             applyNumBoolBinop((x, y) => x < y)
         }
-        M[GREATER] = () => {
+        MM[GREATER] = () => {
             applyNumBoolBinop((x, y) => x > y)
         }
-        M[GEQ] = () => {
+        MM[GEQ] = () => {
             applyNumBoolBinop((x, y) => x >= y)
         }
-        M[LEQ] = () => {
+        MM[LEQ] = () => {
             applyNumBoolBinop((x, y) => x <= y)
         }
 
-        M[NOT] = () => {
+        MM[NOT] = () => {
             let a = OS.pop()
             let r = UBOOL
             if (a != UBOOL) {
@@ -901,14 +904,22 @@ function transition (state) {
             PC += 1
         }
 
-        M[START] = () => {
+        MM[START] = () => {
             PC += 1
         }
 
-        M[POP] = () => {
+        MM[POP] = () => {
             OS.pop()
             PC += 1
         }
+
+        // Add functions to M
+        MM.forEach((v, index) => {
+            M[index] = () => {
+                v() // Apply transition
+                next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter]) // Save as next state
+            }
+        })
     }
     load_primitives()
 
@@ -934,6 +945,7 @@ function transition (state) {
         CLOSURE[2] = env_addr
         OS.push(CLOSURE)
         PC += 4
+        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
     }
 
     M[CALL] = () => {
@@ -965,6 +977,7 @@ function transition (state) {
         KONT = kont_addr
         PC = closure[1]
         TIME = TIME + '.' + PC
+        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
     }
 
     M[RTN] = () => {
@@ -979,6 +992,7 @@ function transition (state) {
         OS.push(top_val)
         ENV = new Map(STORE.get(kont_env_addr))
         PC = kont[0] + 1
+        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
     }
 
     M[LD] = () => {
@@ -987,6 +1001,7 @@ function transition (state) {
         const val = STORE.get(store_addr)
         OS.push(val)
         PC += 2
+        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
     }
 
     M[ASSIGN] = () => {
@@ -997,28 +1012,28 @@ function transition (state) {
         const store_addr = ENV.get(env_name)
         STORE.set(store_addr, val)
         PC += 2
+        next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
     }
 
     M[DONE] = () => {
         console.log('FINISHED EXECUTION')
-        RUNNING = false
     }
 
     if (M[P[PC]] == undefined) {
         error('undefined instruction')
-        RUNNING = false
+        return []
     } else {
         M[P[PC]]()
     }
 
-    return [PC, OS, ENV, STORE, KONT, TIME, counter]
+    return next_states
 }
 
 function cesk_run () {
-    var currentState = initialState
-    while (RUNNING) {
-        currentState = transition(currentState)
-        display_STATE(currentState)
+    var currentStates = [initialState]
+    while (currentStates.length > 0) {
+        display_STATE(currentStates[0])
+        currentStates = transition(currentStates[0])
     }
 }
 
