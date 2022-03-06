@@ -930,7 +930,6 @@ M[CALL] = () => {
     for (var i = 0; i < num_to_extend; i++) {
         additional_vars.push(OS.pop())
     }
-    additional_vars.reverse()
     const closure = OS.pop()
     const kont_env = JSON.parse(JSON.stringify(Array.from(ENV)))
 
