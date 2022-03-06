@@ -713,9 +713,11 @@ function parse_and_compile(string) {
 // P is an array that contains an SVML machine program: 
 // the op-codes of instructions and their arguments
 let P = [];
+
 // PC is program counter: index of the next instruction
 let PC = 0;
 // OS is operand stack, array where last element is top of stack
+// Stores numbers, bools and closures
 let OS = [];
 // ENV is a map which maps names to addresses
 let ENV = new Map();
@@ -723,9 +725,9 @@ let ENV = new Map();
 let STORE = new Map();
 // KONT is an address to the continuation stored in the STORE
 let KONT = "";
-// TIME
+// TIME, concatenated PC of call stack
 let TIME = "0";
-// counter for assigning the addresses
+// counter for assigning the addresses in the current function
 let counter = 0;
 
 // CLOSURE represented by label, func PC, and the addr to ENV
@@ -768,7 +770,7 @@ M[LDF] = () => {
 }
 
 M[CALL] = () => {
-    const num_to_extend = P[PC + 1];
+    const num_to_extend = P[PC + 1]; // Number of parameters
     const additional_vars = [];
     for (var i = 0; i < num_to_extend; i++) {
         additional_vars.push(OS.pop());
@@ -856,9 +858,6 @@ M[DONE] = () => {
     RUNNING = false;
 }
 
-// let RUNNING = 30;
-
-
 function cesk_run() {
     while (RUNNING) {
         if (M[P[PC]] == undefined) {
@@ -906,10 +905,11 @@ P = parse_and_compile(`
     const x = 1;
     const y = 2;
     function f(x, y) {
-        return x + y;
+        const z=3;
+        const zz=3;
+        return z;
     }
     f(x, y);
-    1+2*3;
 `);
 
 print_program(P);
