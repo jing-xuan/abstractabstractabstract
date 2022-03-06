@@ -791,6 +791,10 @@ M[START] = () => {
     PC += 1;
 }
 
+M[PLUS] = () =>    { OS.push(OS.pop()+OS.pop()); PC +=1; };	
+M[MINUS] = () =>   { OS.push(-OS.pop()+OS.pop()); PC +=1; };		
+M[TIMES] = () =>   { OS.push(OS.pop()*OS.pop()); PC +=1;};		
+
 // load a closure into the OS to either CALL or ASSIGN
 // extend the current env by num_consts and store
 M[LDF] = () => {
@@ -866,12 +870,12 @@ M[RTN] = () => {
 }
 
 M[LDCN] = () => {
-    OS.push(NUMBER)
+    OS.push(P[PC+1]) // value
     PC += 2;
 }
 
 M[LDCB] = () => {
-    OS.push(BOOL);
+    OS.push(P[PC+1]) // value
     PC += 2;
 }
 
