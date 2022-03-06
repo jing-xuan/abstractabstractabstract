@@ -829,7 +829,7 @@ function transition (state) {
         }
 
         MM[LDCU] = () => {
-            OS.push(undefined)
+            OS.push('undef')
             PC += 1
         }
 
