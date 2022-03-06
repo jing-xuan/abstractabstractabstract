@@ -331,7 +331,7 @@ function print_program(P) {
                 stringify(P[i + 1]);
             i = i + 2;
         } else {}
-        display("", s);
+        console.log(s);
     }
 }
 
@@ -711,6 +711,9 @@ function parse_and_compile(string) {
     return machine_code;
 }
 
+
+
+
 // CESK STARTS HERE
 
 // "registers" are the global variables of our machine. 
@@ -735,10 +738,6 @@ let TIME = "0";
 // counter for assigning the addresses
 let counter = 0;
 
-// NUMBER represented by label and placeholder val
-const NUMBER = ["NUMBER", 0];
-// BOOL represented by label and placeholder val
-const BOOL = ["BOOL", 0];
 // CLOSURE represented by label, func addr, and the addr to ENV, max_name of this env
 const CLOSURE = ["CLOSURE", 0, 0, 0];
 // MAX_NAME stores the highest name given out so far
@@ -754,38 +753,6 @@ function alloc() {
     max_name += 1;
     return TIME + "." + counter;
 }
-
-function display_ENV() {
-    function log_map(v, k, m) {
-        console.log(k + "->" + v);
-    }
-    console.log("ENV: ");
-    ENV.forEach(log_map);
-    console.log("");
-}
-
-function display_STORE() {
-    function log_map(v, k, m) {
-        console.log(k + "->" + v);
-    }
-    console.log("STORE:");
-    STORE.forEach(log_map);
-    console.log("");
-}
-
-function display_STATE() {
-    console.log("----------------------------------");
-    console.log("PC: " + PC + " " + get_name(P[PC]) + "\n");
-    console.log("OS: ");
-    console.log(OS);
-    display_ENV();
-    display_STORE();
-    console.log("TIME: " + TIME + "\n");
-    console.log("KONT*: " + KONT);
-    console.log("max name is " + max_name + "\n");
-    console.log("----------------------------------");
-}
-
 
 M[START] = () => {
     PC += 1;
@@ -884,11 +851,6 @@ M[LDCU] = () => {
     PC += 1;
 }
 
-M[PLUS] = () => {
-    OS.pop();
-    PC += 1;
-}
-
 M[LD] = () => {
     const env_name = P[PC + 1];
     const store_addr = ENV.get(env_name);
@@ -932,24 +894,37 @@ function cesk_run() {
     }
 }
 
-function run() {
-    while (RUNNING) { 
-        // show_executing("run loop");
-        // show_heap("run loop");
-        if (M[P[PC]] === undefined) {
-            error(P[PC], "unknown op-code:");
-        } else {
-            M[P[PC]](); 
-        }
-    } 
-    if (STATE === DIV_ERROR) {
-        POP_OS();
-        error(RES, "execution aborted:");
-    } else {
-        POP_OS();
-        show_heap_value(RES); 
+function display_ENV() {
+    function log_map(v, k, m) {
+        console.log(k + "->" + v);
     }
+    console.log("ENV: ");
+    ENV.forEach(log_map);
+    console.log("");
 }
+
+function display_STORE() {
+    function log_map(v, k, m) {
+        console.log(k + "->" + v);
+    }
+    console.log("STORE:");
+    STORE.forEach(log_map);
+    console.log("");
+}
+
+function display_STATE() {
+    console.log("----------------------------------");
+    console.log("OS: ");
+    console.log(OS);
+    display_ENV();
+    display_STORE();
+    //console.log("TIME: " + TIME + "\n");
+    //console.log("KONT*: " + KONT);
+    //console.log("max name is " + max_name + "\n");
+    console.log("PC: " + PC + " " + get_name(P[PC]) + "\n");
+    console.log("----------------------------------");
+}
+
 
 P = parse_and_compile(`
     const x = 1;
