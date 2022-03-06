@@ -28,217 +28,10 @@ unop    ::= !
 params  ::= ε | name ( , name ) . . .
 */
 
-// SYNTAX OF SOURCE §1 
-
-// Functions from SICP JS Section 4.1.2
-// with slight modifications
-
-function is_tagged_list(expr, the_tag) {
-    return is_pair(expr) && head(expr) === the_tag;
-}
-
-// names are tagged with "name".
-
-function is_name(stmt) {
-    return is_tagged_list(stmt, "name");
-}
-function symbol_of_name(stmt) {
-    return head(tail(stmt));
-}
-
-function is_literal(stmt) {
-    return is_tagged_list(stmt, "literal");
-}
-
-function literal_value(component) {    
-    return head(tail(component));
-}
-
-function make_literal(value) {
-    return list("literal", value);
-}
-
-function is_undefined_expression(stmt) {     
-    return is_name(stmt) && symbol_of_name(stmt) === "undefined";
-}
-
-// constant declarations are tagged with "constant_declaration"
-// and have "name" and "value" properties
-
-function is_constant_declaration(stmt) {
-  return is_tagged_list(stmt, "constant_declaration");
-}
-function declaration_symbol(component) {
-  return symbol_of_name(head(tail(component)));
-}
-function constant_declaration_value(stmt) {
-  return head(tail(tail(stmt)));
-}
-function make_constant_declaration(name, value_expression) {
-    return list("constant_declaration", name, value_expression);
-}
-function is_declaration(component) {
-    return is_tagged_list(component, "constant_declaration") ||
-          is_tagged_list(component, "variable_declaration") ||
-          is_tagged_list(component, "function_declaration");
-}
-
-// applications are tagged with "application"
-// and have "operator" and "operands"
-
-function is_application(component) {
-  return is_tagged_list(component, "application");
-}
-function function_expression(component) {
-  return head(tail(component));
-}
-function arg_expressions(component) {
-  return head(tail(tail(component)));
-}
-
-// we distinguish primitive applications by their
-// operator name
-
-function is_operator_combination(component) {	    
-    return is_unary_operator_combination(component) ||
-          is_binary_operator_combination(component);
-}
-function is_unary_operator_combination(component) {	    
-    return is_tagged_list(component, "unary_operator_combination");
-}
-function is_binary_operator_combination(component) {	    
-    return is_tagged_list(component, "binary_operator_combination");
-}
-function operator_symbol(component) {
-    return list_ref(component, 1);
-}
-function first_operand(component) {
-    return list_ref(component, 2);
-}
-function second_operand(component) {
-    return list_ref(component, 3);
-}
-
-// logical compositions are tagged
-// with "logical_composition"
-
-function is_logical_composition(expr) {
-    return is_tagged_list(expr, "logical_composition");
-}
-function logical_composition_operator(expr) {
-    return head(tail(expr));
-}
-
-// conditional expressions are tagged
-// with "conditional_expression"
-
-function is_conditional_expression(expr) {
-    return is_tagged_list(expr, 
-                "conditional_expression");
-}
-function cond_expr_pred(expr) {
-    return list_ref(expr, 1);
-}
-function cond_expr_cons(expr) {
-    return list_ref(expr, 2);
-}
-function cond_expr_alt(expr) {
-    return list_ref(expr, 3);
-}
-function make_conditional_expression(expr1, expr2, expr3) {
-    return list("conditional_expression",
-                expr1, expr2, expr3);
-}
-
-// lambda expressions are tagged with "lambda_expression"
-// have a list of "parameters" and a "body" statement
-
-function is_lambda_expression(component) {
-  return is_tagged_list(component, "lambda_expression");
-}
-function lambda_parameter_symbols(component) {
-  return map(symbol_of_name, head(tail(component)));
-}
-function lambda_body(component) {
-  return head(tail(tail(component)));
-}
-function make_lambda_expression(parameters, body) {
-    return list("lambda_expression", parameters, body);
-}
-
-// blocks are tagged with "block"
-// have "body" statement
-
-function is_block(component) {
-    return is_tagged_list(component, "block");
-}
-function block_body(component) {
-    return head(tail(component));
-}
-
-// function declarations are tagged with "lambda_expression"
-// have a list of "parameters" and a "body" statement
-
-function is_function_declaration(component) {	    
-    return is_tagged_list(component, "function_declaration");
-}
-function function_declaration_name(component) {
-    return list_ref(component, 1);
-}
-function function_declaration_parameters(component) {
-    return list_ref(component, 2);
-}
-function function_declaration_body(component) {
-    return list_ref(component, 3);
-}
-function function_decl_to_constant_decl(component) {
-    return make_constant_declaration(
-              function_declaration_name(component),
-              make_lambda_expression(
-                  function_declaration_parameters(component),
-                  function_declaration_body(component)));
-}
-
-// sequences of statements are just represented
-// by tagged lists of statements by the parser.
-
-function is_sequence(stmt) {
-  return is_tagged_list(stmt, "sequence");
-}
-function make_sequence(stmts) {
-  return list("sequence", stmts);
-}
-function sequence_statements(stmt) {   
-  return head(tail(stmt));
-}
-function is_empty_sequence(stmts) {
-  return is_null(stmts);
-}
-function is_last_statement(stmts) {
-  return is_null(tail(stmts));
-}
-function first_statement(stmts) {
-  return head(stmts);
-}
-function rest_statements(stmts) {
-  return tail(stmts);
-}
-
-// functions return the value that results from
-// evaluating their expression
-
-function is_return_statement(stmt) {
-  return is_tagged_list(stmt, "return_statement");
-}
-function return_statement_expression(stmt) {
-  return head(tail(stmt));
-}
-
 // OP-CODES
 
 // op-codes of machine instructions, used by compiler
 // and machine
-
 const START   =  0;
 const LDCN    =  1; // followed by: number
 const LDCB    =  2; // followed by: boolean
@@ -269,39 +62,36 @@ const DONE    = 22;
 const LDF_MAX_OS_SIZE_OFFSET = 1;
 const LDF_ADDRESS_OFFSET = 2;
 const LDF_ENV_EXTENSION_COUNT_OFFSET = 3;
-const LDCN_VALUE_OFFSET = 1;
-const LDCB_VALUE_OFFSET = 1;
-
-// printing opcodes for debugging
-
-const OPCODES = list(
-    pair(START,   "START  "),
-    pair(LDCN,    "LDCN   "),
-    pair(LDCB,    "LDCB   "),
-    pair(LDCU,    "LDCU   "),
-    pair(PLUS,    "PLUS   "),
-    pair(MINUS,   "MINUS  "),
-    pair(TIMES,   "TIMES  "),
-    pair(EQUAL,   "EQUAL  "),
-    pair(LESS,    "LESS   "),
-    pair(GREATER, "GREATER"),
-    pair(LEQ,     "LEQ    "),
-    pair(GEQ,     "GEQ    "),
-    pair(NOT,     "NOT    "),
-    pair(DIV,     "DIV    "),
-    pair(POP,     "POP    "),
-    pair(ASSIGN,  "ASSIGN "),
-    pair(JOF,     "JOF    "),
-    pair(GOTO,    "GOTO   "),
-    pair(LDF,     "LDF    "),
-    pair(CALL,    "CALL   "),
-    pair(LD,      "LD     "),
-    pair(RTN,     "RTN    "),
-    pair(DONE,    "DONE   "));
     
 // get a the name of an opcode, for debugging
-
 function get_name(op) {
+
+    // printing opcodes for debugging
+    const OPCODES = list(
+        pair(START,   "START  "),
+        pair(LDCN,    "LDCN   "),
+        pair(LDCB,    "LDCB   "),
+        pair(LDCU,    "LDCU   "),
+        pair(PLUS,    "PLUS   "),
+        pair(MINUS,   "MINUS  "),
+        pair(TIMES,   "TIMES  "),
+        pair(EQUAL,   "EQUAL  "),
+        pair(LESS,    "LESS   "),
+        pair(GREATER, "GREATER"),
+        pair(LEQ,     "LEQ    "),
+        pair(GEQ,     "GEQ    "),
+        pair(NOT,     "NOT    "),
+        pair(DIV,     "DIV    "),
+        pair(POP,     "POP    "),
+        pair(ASSIGN,  "ASSIGN "),
+        pair(JOF,     "JOF    "),
+        pair(GOTO,    "GOTO   "),
+        pair(LDF,     "LDF    "),
+        pair(CALL,    "CALL   "),
+        pair(LD,      "LD     "),
+        pair(RTN,     "RTN    "),
+        pair(DONE,    "DONE   "));
+
     function lookup(opcodes) {
         return is_null(opcodes) ? error(op, "unknown opcode")
             : op === head(head(opcodes))
@@ -312,7 +102,6 @@ function get_name(op) {
 }
 
 // pretty-print the program
-
 function print_program(P) {
     let i = 0;
     while (i < array_length(P)) {
@@ -336,12 +125,214 @@ function print_program(P) {
 }
 
 // COMPILER FROM SOURCE TO SVML
-
 // parse given string and compile it to machine code
 // return the machine code in an array
-
 function parse_and_compile(string) {
     
+    // Functions from SICP JS Section 4.1.2
+    // with slight modifications
+
+    function is_tagged_list(expr, the_tag) {
+        return is_pair(expr) && head(expr) === the_tag;
+    }
+
+    // names are tagged with "name".
+
+    function is_name(stmt) {
+        return is_tagged_list(stmt, "name");
+    }
+    function symbol_of_name(stmt) {
+        return head(tail(stmt));
+    }
+
+    function is_literal(stmt) {
+        return is_tagged_list(stmt, "literal");
+    }
+
+    function literal_value(component) {    
+        return head(tail(component));
+    }
+
+    function make_literal(value) {
+        return list("literal", value);
+    }
+
+    function is_undefined_expression(stmt) {     
+        return is_name(stmt) && symbol_of_name(stmt) === "undefined";
+    }
+
+    // constant declarations are tagged with "constant_declaration"
+    // and have "name" and "value" properties
+
+    function is_constant_declaration(stmt) {
+      return is_tagged_list(stmt, "constant_declaration");
+    }
+    function declaration_symbol(component) {
+      return symbol_of_name(head(tail(component)));
+    }
+    function constant_declaration_value(stmt) {
+      return head(tail(tail(stmt)));
+    }
+    function make_constant_declaration(name, value_expression) {
+        return list("constant_declaration", name, value_expression);
+    }
+    function is_declaration(component) {
+        return is_tagged_list(component, "constant_declaration") ||
+              is_tagged_list(component, "variable_declaration") ||
+              is_tagged_list(component, "function_declaration");
+    }
+
+    // applications are tagged with "application"
+    // and have "operator" and "operands"
+
+    function is_application(component) {
+      return is_tagged_list(component, "application");
+    }
+    function function_expression(component) {
+      return head(tail(component));
+    }
+    function arg_expressions(component) {
+      return head(tail(tail(component)));
+    }
+
+    // we distinguish primitive applications by their
+    // operator name
+
+    function is_operator_combination(component) {	    
+        return is_unary_operator_combination(component) ||
+              is_binary_operator_combination(component);
+    }
+    function is_unary_operator_combination(component) {	    
+        return is_tagged_list(component, "unary_operator_combination");
+    }
+    function is_binary_operator_combination(component) {	    
+        return is_tagged_list(component, "binary_operator_combination");
+    }
+    function operator_symbol(component) {
+        return list_ref(component, 1);
+    }
+    function first_operand(component) {
+        return list_ref(component, 2);
+    }
+    function second_operand(component) {
+        return list_ref(component, 3);
+    }
+
+    // logical compositions are tagged
+    // with "logical_composition"
+
+    function is_logical_composition(expr) {
+        return is_tagged_list(expr, "logical_composition");
+    }
+    function logical_composition_operator(expr) {
+        return head(tail(expr));
+    }
+
+    // conditional expressions are tagged
+    // with "conditional_expression"
+
+    function is_conditional_expression(expr) {
+        return is_tagged_list(expr, 
+                    "conditional_expression");
+    }
+    function cond_expr_pred(expr) {
+        return list_ref(expr, 1);
+    }
+    function cond_expr_cons(expr) {
+        return list_ref(expr, 2);
+    }
+    function cond_expr_alt(expr) {
+        return list_ref(expr, 3);
+    }
+    function make_conditional_expression(expr1, expr2, expr3) {
+        return list("conditional_expression",
+                    expr1, expr2, expr3);
+    }
+
+    // lambda expressions are tagged with "lambda_expression"
+    // have a list of "parameters" and a "body" statement
+
+    function is_lambda_expression(component) {
+      return is_tagged_list(component, "lambda_expression");
+    }
+    function lambda_parameter_symbols(component) {
+      return map(symbol_of_name, head(tail(component)));
+    }
+    function lambda_body(component) {
+      return head(tail(tail(component)));
+    }
+    function make_lambda_expression(parameters, body) {
+        return list("lambda_expression", parameters, body);
+    }
+
+    // blocks are tagged with "block"
+    // have "body" statement
+
+    function is_block(component) {
+        return is_tagged_list(component, "block");
+    }
+    function block_body(component) {
+        return head(tail(component));
+    }
+
+    // function declarations are tagged with "lambda_expression"
+    // have a list of "parameters" and a "body" statement
+
+    function is_function_declaration(component) {	    
+        return is_tagged_list(component, "function_declaration");
+    }
+    function function_declaration_name(component) {
+        return list_ref(component, 1);
+    }
+    function function_declaration_parameters(component) {
+        return list_ref(component, 2);
+    }
+    function function_declaration_body(component) {
+        return list_ref(component, 3);
+    }
+    function function_decl_to_constant_decl(component) {
+        return make_constant_declaration(
+                  function_declaration_name(component),
+                  make_lambda_expression(
+                      function_declaration_parameters(component),
+                      function_declaration_body(component)));
+    }
+
+    // sequences of statements are just represented
+    // by tagged lists of statements by the parser.
+
+    function is_sequence(stmt) {
+      return is_tagged_list(stmt, "sequence");
+    }
+    function make_sequence(stmts) {
+      return list("sequence", stmts);
+    }
+    function sequence_statements(stmt) {   
+      return head(tail(stmt));
+    }
+    function is_empty_sequence(stmts) {
+      return is_null(stmts);
+    }
+    function is_last_statement(stmts) {
+      return is_null(tail(stmts));
+    }
+    function first_statement(stmts) {
+      return head(stmts);
+    }
+    function rest_statements(stmts) {
+      return tail(stmts);
+    }
+
+    // functions return the value that results from
+    // evaluating their expression
+
+    function is_return_statement(stmt) {
+      return is_tagged_list(stmt, "return_statement");
+    }
+    function return_statement_expression(stmt) {
+      return head(tail(stmt));
+    }
+
     // machine_code is array for machine instructions
     const machine_code = [];
     
@@ -713,7 +704,6 @@ function parse_and_compile(string) {
 
 
 
-
 // CESK STARTS HERE
 
 // "registers" are the global variables of our machine. 
@@ -933,7 +923,7 @@ P = parse_and_compile(`
         return x + y;
     }
     f(x, y);
-    // 1+2;
+    1+2*3;
 `);
 
 print_program(P);
