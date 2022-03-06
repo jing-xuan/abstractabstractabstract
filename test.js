@@ -923,13 +923,13 @@ function transition (state) {
     M[LDF] = () => {
         const fun_addr = P[PC + 2]
         const num_consts = P[PC + 3]
-        const new_env = new Map(JSON.parse(JSON.stringify(Array.from(ENV))))
+        const new_env = new Map(copyArr(Array.from(ENV)))
         // extend the new_env by num_consts
         for (var i = ENV.size; i < ENV.size + num_consts; i++) {
             new_env.set(i, alloc())
         }
         const env_addr = fun_addr + '.env'
-        STORE.set(env_addr, JSON.parse(JSON.stringify(Array.from(new_env))))
+        STORE.set(env_addr, copyArr(Array.from(new_env)))
         CLOSURE[1] = fun_addr
         CLOSURE[2] = env_addr
         OS.push(CLOSURE)
@@ -943,7 +943,7 @@ function transition (state) {
             additional_vars.push(OS.pop())
         }
         const closure = OS.pop()
-        const kont_env = JSON.parse(JSON.stringify(Array.from(ENV)))
+        const kont_env = copyArr(Array.from(ENV))
 
         // Add parameters
         let max_name = ENV.size
@@ -957,7 +957,7 @@ function transition (state) {
         const kont_addr = TIME + '.' + PC + '.kont'
         const kont_env_addr = kont_addr + '.env'
         const kont_os_addr = kont_addr + '.os'
-        const kont_os = JSON.parse(JSON.stringify(OS))
+        const kont_os = copyArr(OS)
         STORE.set(kont_env_addr, kont_env)
         STORE.set(kont_os_addr, kont_os)
         const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
