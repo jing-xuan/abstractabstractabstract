@@ -803,7 +803,7 @@ let RUNNING = true
 
 let M = []
 
-// Adds simple arithmetic functions to M
+// Adds simple instructions to M that only manipulate OS and PC
 function load_primitives () {
     M[LDCN] = () => {
         OS.push(P[PC + 1]) // value
@@ -888,6 +888,15 @@ function load_primitives () {
         OS.push(r)
         PC += 1
     }
+
+    M[START] = () => {
+        PC += 1
+    }
+
+    M[POP] = () => {
+        OS.pop()
+        PC += 1
+    }
 }
 load_primitives()
 
@@ -895,10 +904,6 @@ load_primitives()
 function alloc () {
     counter += 1
     return TIME + '.' + counter
-}
-
-M[START] = () => {
-    PC += 1
 }
 
 // load a closure into the OS to either CALL or ASSIGN
@@ -983,11 +988,6 @@ M[ASSIGN] = () => {
     PC += 2
 }
 
-M[POP] = () => {
-    OS.pop()
-    PC += 1
-}
-
 M[DONE] = () => {
     console.log('FINISHED EXECUTION')
     RUNNING = false
@@ -1039,8 +1039,7 @@ P = parse_and_compile(`
     const x = 1;
     const y = 2;
     function f(x, y) {
-        const z=5;
-        return x+y-2*3+z;
+        return x+y*3;
     }
     f(x, y);
 `)
