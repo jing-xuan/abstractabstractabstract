@@ -803,6 +803,7 @@ function transition (state) {
     // STORE is a map which maps addresses to values
     let STORE = copyMap(state[3])
     // KONT is an address to the continuation stored in the STORE
+    // Continuations stores PC, OS, ENV, previous KONT, and TIME
     let KONT = state[4]
     // TIME, concatenated PC of call stack
     let TIME = state[5]
@@ -1030,32 +1031,38 @@ function transition (state) {
 }
 
 function cesk_run () {
+    let count = 0
     var currentStates = [initialState]
     while (currentStates.length > 0) {
         display_STATE(currentStates[0])
         currentStates = transition(currentStates[0])
+        count++
+        if (count == 20) {
+            console.log('BROKE')
+            break
+        }
     }
-}
-
-function display_ENV (env) {
-    function log_map (v, k, m) {
-        console.log(k + '->' + v)
-    }
-    console.log('ENV: ')
-    env.forEach(log_map)
-    console.log('')
-}
-
-function display_STORE (store) {
-    function log_map (v, k, m) {
-        console.log(k + '->' + v)
-    }
-    console.log('STORE:')
-    store.forEach(log_map)
-    console.log('')
 }
 
 function display_STATE (state) {
+    function display_ENV (env) {
+        function log_map (v, k, m) {
+            console.log(k + '->' + v)
+        }
+        console.log('ENV: ')
+        env.forEach(log_map)
+        console.log('')
+    }
+
+    function display_STORE (store) {
+        function log_map (v, k, m) {
+            console.log(k + '->' + JSON.stringify(v))
+        }
+        console.log('STORE:')
+        store.forEach(log_map)
+        console.log('')
+    }
+
     let [PC, OS, ENV, STORE, KONT, TIME, counter] = state
     console.log('----------------------------------')
     console.log('OS: ')
@@ -1069,12 +1076,10 @@ function display_STATE (state) {
 }
 
 P = parse_and_compile(`
-    const x = 1;
-    const y = 2;
-    function f(x, y) {
-        return x+y;
+    function f() {
+        return f();
     }
-    f(x, y);
+    f();
 `)
 
 print_program(P)
