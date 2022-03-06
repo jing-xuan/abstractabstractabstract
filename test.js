@@ -716,7 +716,7 @@ let P = [];
 // PC is program counter: index of the next instruction
 let PC = 0;
 // OS is operand stack, array where last element is top of stack
-let OS = []
+let OS = [];
 // ENV is a map which maps names to addresses
 let ENV = new Map();
 // STORE is a map which maps addresses to values
@@ -728,10 +728,8 @@ let TIME = "0";
 // counter for assigning the addresses
 let counter = 0;
 
-// CLOSURE represented by label, func addr, and the addr to ENV, max_name of this env
-const CLOSURE = ["CLOSURE", 0, 0, 0];
-// MAX_NAME stores the highest name given out so far
-let max_name = 0;
+// CLOSURE represented by label, func PC, and the addr to ENV
+const CLOSURE = ["CLOSURE", 0, 0];
 
 let RUNNING = true;
 
@@ -740,7 +738,6 @@ let M = [];
 // gives the address
 function alloc() {
     counter += 1;
-    max_name += 1;
     return TIME + "." + counter;
 }
 
@@ -759,25 +756,18 @@ M[LDF] = () => {
     const num_consts = P[PC + 3];
     const new_env = new Map(JSON.parse(JSON.stringify(Array.from(ENV))));
     // extend the new_env by num_consts
-    const cur_max_name = max_name;
-    for (var i = cur_max_name; i < cur_max_name + num_consts; i++) {
+    for (var i = ENV.size; i < ENV.size + num_consts; i++) {
         new_env.set(i, alloc());
     }
     const env_addr = fun_addr + ".env";
     STORE.set(env_addr, JSON.parse(JSON.stringify(Array.from(new_env))));
-    // need to go back to the max_name for the current environment,
-    // alloc increases max_name, but this is after extending the cur env for 
-    // this function called in the future
     CLOSURE[1] = fun_addr;
     CLOSURE[2] = env_addr;
-    CLOSURE[3] = max_name;
-    max_name = cur_max_name;
     OS.push(CLOSURE);
     PC += 4;
 }
 
 M[CALL] = () => {
-    let cur_max_name = max_name;
     const num_to_extend = P[PC + 1];
     const additional_vars = [];
     for (var i = 0; i < num_to_extend; i++) {
@@ -786,17 +776,15 @@ M[CALL] = () => {
     additional_vars.reverse();
     const closure = OS.pop();
     const kont_env = JSON.parse(JSON.stringify(Array.from(ENV)));
+
+    // Add parameters
+    let max_name = ENV.size;
     ENV = new Map(STORE.get(closure[2]));
-    // TODO: copy a certain number of arguments from the OS into the new env
-    // display_ENV();
     for (var i = 0; i < num_to_extend; i++) {
-        // console.log(cur_max_name + i);
-        var addr = ENV.get(cur_max_name + i);
-        // console.log(addr);
+        var addr = ENV.get(max_name + i);
         STORE.set(addr, additional_vars.pop());
     }
-    // display_STORE();
-    max_name = closure[3];
+
     counter = 0;
     const kont_addr = TIME + "." + PC + ".kont";
     const kont_env_addr = kont_addr + ".env";
@@ -804,7 +792,7 @@ M[CALL] = () => {
     const kont_os = JSON.parse(JSON.stringify(OS));
     STORE.set(kont_env_addr, kont_env);
     STORE.set(kont_os_addr, kont_os);
-    const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME, max_name];
+    const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME];
     STORE.set(kont_addr, kont);
     KONT = kont_addr;
     PC = closure[1];
@@ -822,7 +810,6 @@ M[RTN] = () => {
     OS = STORE.get(kont_os_addr);
     OS.push(top_val);
     ENV = new Map(STORE.get(kont_env_addr));
-    max_name = kont[5];
     PC = kont[0] + 1;
 }
 
@@ -910,7 +897,6 @@ function display_STATE() {
     display_STORE();
     //console.log("TIME: " + TIME + "\n");
     //console.log("KONT*: " + KONT);
-    //console.log("max name is " + max_name + "\n");
     console.log("PC: " + PC + " " + get_name(P[PC]) + "\n");
     console.log("----------------------------------");
 }
