@@ -770,6 +770,14 @@ function parse_and_compile (string) {
     return machine_code
 }
 
+function copyArr (arr) {
+    return JSON.parse(JSON.stringify(arr))
+}
+
+function copyMap (map) {
+    return new Map(JSON.parse(JSON.stringify(Array.from(map))))
+}
+
 // CESK STARTS HERE
 
 // "registers" are the global variables of our machine.
@@ -780,254 +788,265 @@ function parse_and_compile (string) {
 // the op-codes of instructions and their arguments
 let P = []
 
-// PC is program counter: index of the next instruction
-let PC = 0
-// OS is operand stack, array where last element is top of stack
-// Stores numbers, bools and closures
-let OS = []
-// ENV is a map which maps names to addresses
-let ENV = new Map()
-// STORE is a map which maps addresses to values
-let STORE = new Map()
-// KONT is an address to the continuation stored in the STORE
-let KONT = ''
-// TIME, concatenated PC of call stack
-let TIME = '0'
-// counter for assigning the addresses in the current function
-let counter = 0
-
-// CLOSURE represented by label, func PC, and the addr to ENV
-const CLOSURE = ['CLOSURE', 0, 0]
+let initialState = [0, [], new Map(), new Map(), '', '0', 0]
 
 let RUNNING = true
 
-let M = []
+// Transition from one state to array of new states
+function transition (state) {
+    // PC is program counter: index of the next instruction
+    let PC = state[0]
+    // OS is operand stack, array where last element is top of stack
+    // Stores numbers, bools and closures
+    let OS = copyArr(state[1])
+    // ENV is a map which maps names to addresses
+    let ENV = copyMap(state[2])
+    // STORE is a map which maps addresses to values
+    let STORE = copyMap(state[3])
+    // KONT is an address to the continuation stored in the STORE
+    let KONT = state[4]
+    // TIME, concatenated PC of call stack
+    let TIME = state[5]
+    // counter for assigning the addresses in the current function
+    let counter = state[6]
 
-// Adds simple instructions to M that only manipulate OS and PC
-function load_primitives () {
-    M[LDCN] = () => {
-        OS.push(P[PC + 1]) // value
-        PC += 2
-    }
+    // CLOSURE represented by label, func PC, and the addr to ENV
+    const CLOSURE = ['CLOSURE', 0, 0]
 
-    M[LDCB] = () => {
-        OS.push(P[PC + 1]) // value
-        PC += 2
-    }
+    let M = []
 
-    M[LDCU] = () => {
-        OS.push(undefined)
-        PC += 1
-    }
+    // Adds simple instructions to M that only manipulate OS and PC
+    function load_primitives () {
+        M[LDCN] = () => {
+            OS.push(P[PC + 1]) // value
+            PC += 2
+        }
 
-    const MAX_NUM = 10
-    const MIN_NUM = -10
-    const UNUM = 'unum' // Unknown number
-    const UBOOL = 'ubool' // Unknown bool
+        M[LDCB] = () => {
+            OS.push(P[PC + 1]) // value
+            PC += 2
+        }
 
-    function applyNumNumBinop (f) {
-        let b = OS.pop()
-        let a = OS.pop()
-        let c = UNUM
-        if (a != UNUM && b != UNUM) {
-            let r = f(a, b)
-            if (r >= MIN_NUM && r <= MAX_NUM) {
-                c = r
+        M[LDCU] = () => {
+            OS.push(undefined)
+            PC += 1
+        }
+
+        const MAX_NUM = 10
+        const MIN_NUM = -10
+        const UNUM = 'unum' // Unknown number
+        const UBOOL = 'ubool' // Unknown bool
+
+        function applyNumNumBinop (f) {
+            let b = OS.pop()
+            let a = OS.pop()
+            let c = UNUM
+            if (a != UNUM && b != UNUM) {
+                let r = f(a, b)
+                if (r >= MIN_NUM && r <= MAX_NUM) {
+                    c = r
+                }
             }
+            OS.push(c)
+            PC += 1
         }
-        OS.push(c)
-        PC += 1
-    }
 
-    M[PLUS] = () => {
-        applyNumNumBinop((x, y) => x + y)
-    }
-    M[MINUS] = () => {
-        applyNumNumBinop((x, y) => x - y)
-    }
-    M[TIMES] = () => {
-        applyNumNumBinop((x, y) => x * y)
-    }
-    M[DIV] = () => {
-        applyNumNumBinop((x, y) => x / y)
-    }
-
-    function applyNumBoolBinop (f) {
-        let b = OS.pop()
-        let a = OS.pop()
-        let c = UBOOL
-        if (a != UNUM && b != UNUM) {
-            c = f(a, b)
+        M[PLUS] = () => {
+            applyNumNumBinop((x, y) => x + y)
         }
-        OS.push(c)
-        PC += 1
-    }
-
-    M[EQUAL] = () => {
-        applyNumBoolBinop((x, y) => x == y)
-    }
-    M[LESS] = () => {
-        applyNumBoolBinop((x, y) => x < y)
-    }
-    M[GREATER] = () => {
-        applyNumBoolBinop((x, y) => x > y)
-    }
-    M[GEQ] = () => {
-        applyNumBoolBinop((x, y) => x >= y)
-    }
-    M[LEQ] = () => {
-        applyNumBoolBinop((x, y) => x <= y)
-    }
-
-    M[NOT] = () => {
-        let a = OS.pop()
-        let r = UBOOL
-        if (a != UBOOL) {
-            r = !a
+        M[MINUS] = () => {
+            applyNumNumBinop((x, y) => x - y)
         }
-        OS.push(r)
-        PC += 1
+        M[TIMES] = () => {
+            applyNumNumBinop((x, y) => x * y)
+        }
+        M[DIV] = () => {
+            applyNumNumBinop((x, y) => x / y)
+        }
+
+        function applyNumBoolBinop (f) {
+            let b = OS.pop()
+            let a = OS.pop()
+            let c = UBOOL
+            if (a != UNUM && b != UNUM) {
+                c = f(a, b)
+            }
+            OS.push(c)
+            PC += 1
+        }
+
+        M[EQUAL] = () => {
+            applyNumBoolBinop((x, y) => x == y)
+        }
+        M[LESS] = () => {
+            applyNumBoolBinop((x, y) => x < y)
+        }
+        M[GREATER] = () => {
+            applyNumBoolBinop((x, y) => x > y)
+        }
+        M[GEQ] = () => {
+            applyNumBoolBinop((x, y) => x >= y)
+        }
+        M[LEQ] = () => {
+            applyNumBoolBinop((x, y) => x <= y)
+        }
+
+        M[NOT] = () => {
+            let a = OS.pop()
+            let r = UBOOL
+            if (a != UBOOL) {
+                r = !a
+            }
+            OS.push(r)
+            PC += 1
+        }
+
+        M[START] = () => {
+            PC += 1
+        }
+
+        M[POP] = () => {
+            OS.pop()
+            PC += 1
+        }
+    }
+    load_primitives()
+
+    // gives the address
+    function alloc () {
+        counter += 1
+        return TIME + '.' + counter
     }
 
-    M[START] = () => {
-        PC += 1
+    // load a closure into the OS to either CALL or ASSIGN
+    // extend the current env by num_consts and store
+    M[LDF] = () => {
+        const fun_addr = P[PC + 2]
+        const num_consts = P[PC + 3]
+        const new_env = new Map(JSON.parse(JSON.stringify(Array.from(ENV))))
+        // extend the new_env by num_consts
+        for (var i = ENV.size; i < ENV.size + num_consts; i++) {
+            new_env.set(i, alloc())
+        }
+        const env_addr = fun_addr + '.env'
+        STORE.set(env_addr, JSON.parse(JSON.stringify(Array.from(new_env))))
+        CLOSURE[1] = fun_addr
+        CLOSURE[2] = env_addr
+        OS.push(CLOSURE)
+        PC += 4
     }
 
-    M[POP] = () => {
+    M[CALL] = () => {
+        const num_to_extend = P[PC + 1] // Number of parameters
+        const additional_vars = []
+        for (var i = 0; i < num_to_extend; i++) {
+            additional_vars.push(OS.pop())
+        }
+        const closure = OS.pop()
+        const kont_env = JSON.parse(JSON.stringify(Array.from(ENV)))
+
+        // Add parameters
+        let max_name = ENV.size
+        ENV = new Map(STORE.get(closure[2]))
+        for (var i = 0; i < num_to_extend; i++) {
+            var addr = ENV.get(max_name + i)
+            STORE.set(addr, additional_vars.pop())
+        }
+
+        counter = 0
+        const kont_addr = TIME + '.' + PC + '.kont'
+        const kont_env_addr = kont_addr + '.env'
+        const kont_os_addr = kont_addr + '.os'
+        const kont_os = JSON.parse(JSON.stringify(OS))
+        STORE.set(kont_env_addr, kont_env)
+        STORE.set(kont_os_addr, kont_os)
+        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
+        STORE.set(kont_addr, kont)
+        KONT = kont_addr
+        PC = closure[1]
+        TIME = TIME + '.' + PC
+    }
+
+    M[RTN] = () => {
+        const top_val = OS.pop()
+        const kont_addr = KONT
+        const kont = STORE.get(kont_addr)
+        const kont_env_addr = kont[2]
+        const kont_os_addr = kont[1]
+        KONT = kont[3]
+        TIME = kont[4]
+        OS = STORE.get(kont_os_addr)
+        OS.push(top_val)
+        ENV = new Map(STORE.get(kont_env_addr))
+        PC = kont[0] + 1
+    }
+
+    M[LD] = () => {
+        const env_name = P[PC + 1]
+        const store_addr = ENV.get(env_name)
+        const val = STORE.get(store_addr)
+        OS.push(val)
+        PC += 2
+    }
+
+    M[ASSIGN] = () => {
+        const val = OS[OS.length - 1]
         OS.pop()
-        PC += 1
-    }
-}
-load_primitives()
-
-// gives the address
-function alloc () {
-    counter += 1
-    return TIME + '.' + counter
-}
-
-// load a closure into the OS to either CALL or ASSIGN
-// extend the current env by num_consts and store
-M[LDF] = () => {
-    const fun_addr = P[PC + 2]
-    const num_consts = P[PC + 3]
-    const new_env = new Map(JSON.parse(JSON.stringify(Array.from(ENV))))
-    // extend the new_env by num_consts
-    for (var i = ENV.size; i < ENV.size + num_consts; i++) {
-        new_env.set(i, alloc())
-    }
-    const env_addr = fun_addr + '.env'
-    STORE.set(env_addr, JSON.parse(JSON.stringify(Array.from(new_env))))
-    CLOSURE[1] = fun_addr
-    CLOSURE[2] = env_addr
-    OS.push(CLOSURE)
-    PC += 4
-}
-
-M[CALL] = () => {
-    const num_to_extend = P[PC + 1] // Number of parameters
-    const additional_vars = []
-    for (var i = 0; i < num_to_extend; i++) {
-        additional_vars.push(OS.pop())
-    }
-    const closure = OS.pop()
-    const kont_env = JSON.parse(JSON.stringify(Array.from(ENV)))
-
-    // Add parameters
-    let max_name = ENV.size
-    ENV = new Map(STORE.get(closure[2]))
-    for (var i = 0; i < num_to_extend; i++) {
-        var addr = ENV.get(max_name + i)
-        STORE.set(addr, additional_vars.pop())
+        const env_name = P[PC + 1][0]
+        const string_name = P[PC + 1][1]
+        const store_addr = ENV.get(env_name)
+        STORE.set(store_addr, val)
+        PC += 2
     }
 
-    counter = 0
-    const kont_addr = TIME + '.' + PC + '.kont'
-    const kont_env_addr = kont_addr + '.env'
-    const kont_os_addr = kont_addr + '.os'
-    const kont_os = JSON.parse(JSON.stringify(OS))
-    STORE.set(kont_env_addr, kont_env)
-    STORE.set(kont_os_addr, kont_os)
-    const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
-    STORE.set(kont_addr, kont)
-    KONT = kont_addr
-    PC = closure[1]
-    TIME = TIME + '.' + PC
-}
+    M[DONE] = () => {
+        console.log('FINISHED EXECUTION')
+        RUNNING = false
+    }
 
-M[RTN] = () => {
-    const top_val = OS.pop()
-    const kont_addr = KONT
-    const kont = STORE.get(kont_addr)
-    const kont_env_addr = kont[2]
-    const kont_os_addr = kont[1]
-    KONT = kont[3]
-    TIME = kont[4]
-    OS = STORE.get(kont_os_addr)
-    OS.push(top_val)
-    ENV = new Map(STORE.get(kont_env_addr))
-    PC = kont[0] + 1
-}
+    if (M[P[PC]] == undefined) {
+        error('undefined instruction')
+        RUNNING = false
+    } else {
+        M[P[PC]]()
+    }
 
-M[LD] = () => {
-    const env_name = P[PC + 1]
-    const store_addr = ENV.get(env_name)
-    const val = STORE.get(store_addr)
-    OS.push(val)
-    PC += 2
-}
-
-M[ASSIGN] = () => {
-    const val = OS[OS.length - 1]
-    OS.pop()
-    const env_name = P[PC + 1][0]
-    const string_name = P[PC + 1][1]
-    const store_addr = ENV.get(env_name)
-    STORE.set(store_addr, val)
-    PC += 2
-}
-
-M[DONE] = () => {
-    console.log('FINISHED EXECUTION')
-    RUNNING = false
+    return [PC, OS, ENV, STORE, KONT, TIME, counter]
 }
 
 function cesk_run () {
+    var currentState = initialState
     while (RUNNING) {
-        if (M[P[PC]] == undefined) {
-            error('undefined instruction')
-            RUNNING = false
-        } else {
-            M[P[PC]]()
-            display_STATE()
-        }
+        currentState = transition(currentState)
+        display_STATE(currentState)
     }
 }
 
-function display_ENV () {
+function display_ENV (env) {
     function log_map (v, k, m) {
         console.log(k + '->' + v)
     }
     console.log('ENV: ')
-    ENV.forEach(log_map)
+    env.forEach(log_map)
     console.log('')
 }
 
-function display_STORE () {
+function display_STORE (store) {
     function log_map (v, k, m) {
         console.log(k + '->' + v)
     }
     console.log('STORE:')
-    STORE.forEach(log_map)
+    store.forEach(log_map)
     console.log('')
 }
 
-function display_STATE () {
+function display_STATE (state) {
+    let [PC, OS, ENV, STORE, KONT, TIME, counter] = state
     console.log('----------------------------------')
     console.log('OS: ')
     console.log(OS)
-    display_ENV()
-    display_STORE()
+    display_ENV(ENV)
+    display_STORE(STORE)
     //console.log("TIME: " + TIME + "\n");
     //console.log("KONT*: " + KONT);
     console.log('PC: ' + PC + ' ' + get_name(P[PC]) + '\n')
@@ -1038,7 +1057,7 @@ P = parse_and_compile(`
     const x = 1;
     const y = 2;
     function f(x, y) {
-        return x+y*3;
+        return x+y;
     }
     f(x, y);
 `)
