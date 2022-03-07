@@ -957,7 +957,7 @@ function transition (state) {
         const num_consts = P[PC + 3]
         const new_env = copyMap(ENV)
         // extend the new_env by num_consts
-        for (var i = ENV.size; i < ENV.size + num_consts; i++) {
+        for (let i = ENV.size; i < ENV.size + num_consts; i++) {
             new_env.set(i, alloc())
         }
         const env_addr = fun_addr + '.env'
@@ -973,7 +973,7 @@ function transition (state) {
     M[CALL] = () => {
         const num_to_extend = P[PC + 1] // Number of parameters
         const additional_vars = []
-        for (var i = 0; i < num_to_extend; i++) {
+        for (let i = 0; i < num_to_extend; i++) {
             additional_vars.push(OS.pop())
         }
         const closure = OS.pop()
@@ -982,8 +982,8 @@ function transition (state) {
         // Add parameters
         let max_name = ENV.size
         ENV = new Map(loadStore(closure[2])[0])
-        for (var i = 0; i < num_to_extend; i++) {
-            var addr = ENV.get(max_name + i)
+        for (let i = 0; i < num_to_extend; i++) {
+            let addr = ENV.get(max_name + i)
             setStore(addr, additional_vars.pop())
         }
 
@@ -998,7 +998,9 @@ function transition (state) {
         setStore(kont_addr, kont)
         KONT = kont_addr
         PC = closure[1]
-        TIME = TIME + '.' + PC
+        if (TIME.split('.').length < MAX_TIME) {
+            TIME = TIME + '.' + PC
+        }
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
@@ -1053,13 +1055,33 @@ function transition (state) {
 }
 
 function cesk_run () {
-    let count = 0
-    var currentStates = [initialState]
-    while (currentStates.length > 0) {
-        display_STATE(currentStates[0])
-        currentStates = transition(currentStates[0])
-        count++
-        if (count == 20) {
+    function stringify_state (state) {
+        let copy = [...state] // Shallow copy
+        copy[2] = Array.from(state[2]) // ENV
+        copy[3] = Array.from(state[3]) // STORE
+        return JSON.stringify(copy)
+    }
+
+    let nextStates = [initialState] // Stack of states to DFS
+
+    let nodes = [] // contains [state,children] of visited nodes
+    let strToIndex = new Map() // Maps stringified state to index in nodes
+
+    while (nextStates.length > 0) {
+        let cur = nextStates.pop()
+        if (strToIndex.has(stringify_state(cur))) {
+            continue // If state has been visited
+        }
+        // Transition current state
+        display_STATE(cur)
+        let children = transition(cur)
+        // Add state to visited nodes
+        nodes.push([cur, children])
+        strToIndex.set(stringify_state(cur), nodes.length - 1)
+        // Add children to stack
+        nextStates.push(...[...children].reverse()) // shallow copy, reverse and append
+        // Bound number of states visited
+        if (nodes.size == MAX_COUNT) {
             console.log('BROKE')
             break
         }
@@ -1094,7 +1116,7 @@ function display_STATE (state) {
     console.log(OS)
     display_ENV(ENV)
     display_STORE(STORE)
-    //console.log("TIME: " + TIME + "\n");
+    console.log('TIME: ' + TIME + '\n')
     //console.log("KONT*: " + KONT);
     console.log('PC: ' + PC + ' ' + get_name(P[PC]) + '\n')
     console.log('----------------------------------')
@@ -1107,7 +1129,20 @@ P = parse_and_compile(`
     f();
 `)
 
+// P = parse_and_compile(`
+//     const x = 1;
+//     const y = 2;
+//     function f(x, y) {
+//         const z = 8;
+//         return x+y-z;
+//     }
+//     f(x, y);
+//     f(x, y)+x;
+// `)
+
 print_program(P)
 
+let MAX_TIME = 3 // Maximum length of TIME, will be truncated if exceeding
+let MAX_COUNT = 20 // Number of iterations to run
 cesk_run()
 // run()
