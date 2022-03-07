@@ -1022,10 +1022,17 @@ function transition (state) {
     M[LD] = () => {
         const env_name = P[PC + 1]
         const store_addr = ENV.get(env_name)
-        const val = loadStore(store_addr)[0]
-        OS.push(val)
-        PC += 2
-        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
+        const vals = loadStore(store_addr)
+
+        function cont (val, PC, OS) {
+            OS.push(val)
+            PC += 2
+            next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        }
+
+        for (let val of vals) {
+            cont(val, PC, copyArr(OS))
+        }
     }
 
     M[ASSIGN] = () => {
@@ -1117,16 +1124,16 @@ function display_STATE (state) {
     display_ENV(ENV)
     display_STORE(STORE)
     console.log('TIME: ' + TIME + '\n')
-    //console.log("KONT*: " + KONT);
+    console.log('KONT*: ' + KONT)
     console.log('PC: ' + PC + ' ' + get_name(P[PC]) + '\n')
     console.log('----------------------------------')
 }
 
 P = parse_and_compile(`
-    function f() {
-        return f();
+    function f(x) {
+        return f(x+1);
     }
-    f();
+    f(1);
 `)
 
 // P = parse_and_compile(`
