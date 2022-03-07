@@ -956,7 +956,7 @@ function transition (state) {
         const fun_addr = P[PC + 2]
         const num_consts = P[PC + 3]
         const new_env = copyMap(ENV)
-        // extend the new_env by num_consts
+        // Extend the new_env by num_consts (params.length + locals.length)
         for (let i = ENV.size; i < ENV.size + num_consts; i++) {
             new_env.set(i, alloc())
         }
@@ -1077,11 +1077,14 @@ function cesk_run () {
     while (nextStates.length > 0) {
         let cur = nextStates.pop()
         if (strToIndex.has(stringify_state(cur))) {
+            //console.log('DUPE')
+            //display_STATE(cur)
             continue // If state has been visited
         }
         // Transition current state
         display_STATE(cur)
         let children = transition(cur)
+        //console.log('CHIDREN: ' + children.length)
         // Add state to visited nodes
         nodes.push([cur, children])
         strToIndex.set(stringify_state(cur), nodes.length - 1)
@@ -1131,9 +1134,9 @@ function display_STATE (state) {
 
 P = parse_and_compile(`
     function f(x) {
-        return f(x+1);
+        return f(1);
     }
-    f(1);
+    f(5);
 `)
 
 // P = parse_and_compile(`
@@ -1152,4 +1155,3 @@ print_program(P)
 let MAX_TIME = 3 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = 20 // Number of iterations to run
 cesk_run()
-// run()
