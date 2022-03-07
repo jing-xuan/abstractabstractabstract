@@ -725,7 +725,8 @@ function parse_and_compile (string) {
                 (is_literal(expr) ||
                     is_undefined_expression(expr) ||
                     is_application(expr) ||
-                    is_operator_combination(expr))
+                    is_operator_combination(expr) ||
+                    is_name(expr))
             ) {
                 add_nullary_instruction(RTN)
             } else {
