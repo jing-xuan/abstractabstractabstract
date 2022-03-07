@@ -923,6 +923,27 @@ function transition (state) {
     }
     load_primitives()
 
+    // Adds value to store
+    function setStore (addr, newVal) {
+        let newStr = JSON.stringify(newVal)
+        if (STORE.has(addr)) {
+            let arr = STORE.get(addr)
+            for (let v of arr) {
+                if (newStr === JSON.stringify(v)) {
+                    return // Item already in array
+                }
+            }
+            arr.push(newVal)
+        } else {
+            STORE.set(addr, [newVal]) // First entry in store
+        }
+    }
+
+    // Loads array of values from store
+    function loadStore (addr) {
+        return STORE.get(addr)
+    }
+
     // gives the address
     function alloc () {
         counter += 1
@@ -940,7 +961,7 @@ function transition (state) {
             new_env.set(i, alloc())
         }
         const env_addr = fun_addr + '.env'
-        STORE.set(env_addr, copyArr(Array.from(new_env)))
+        setStore(env_addr, Array.from(new_env))
         const closure = ['CLOSURE']
         closure[1] = fun_addr
         closure[2] = env_addr
@@ -960,10 +981,10 @@ function transition (state) {
 
         // Add parameters
         let max_name = ENV.size
-        ENV = new Map(STORE.get(closure[2]))
+        ENV = new Map(loadStore(closure[2])[0])
         for (var i = 0; i < num_to_extend; i++) {
             var addr = ENV.get(max_name + i)
-            STORE.set(addr, additional_vars.pop())
+            setStore(addr, additional_vars.pop())
         }
 
         counter = 0
@@ -971,10 +992,10 @@ function transition (state) {
         const kont_env_addr = kont_addr + '.env'
         const kont_os_addr = kont_addr + '.os'
         const kont_os = copyArr(OS)
-        STORE.set(kont_env_addr, kont_env)
-        STORE.set(kont_os_addr, kont_os)
+        setStore(kont_env_addr, kont_env)
+        setStore(kont_os_addr, kont_os)
         const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
-        STORE.set(kont_addr, kont)
+        setStore(kont_addr, kont)
         KONT = kont_addr
         PC = closure[1]
         TIME = TIME + '.' + PC
@@ -984,14 +1005,14 @@ function transition (state) {
     M[RTN] = () => {
         const top_val = OS.pop()
         const kont_addr = KONT
-        const kont = STORE.get(kont_addr)
+        const kont = loadStore(kont_addr)[0]
         const kont_env_addr = kont[2]
         const kont_os_addr = kont[1]
         KONT = kont[3]
         TIME = kont[4]
-        OS = STORE.get(kont_os_addr)
+        OS = loadStore(kont_os_addr)[0]
         OS.push(top_val)
-        ENV = new Map(STORE.get(kont_env_addr))
+        ENV = new Map(loadStore(kont_env_addr)[0])
         PC = kont[0] + 1
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
@@ -999,7 +1020,7 @@ function transition (state) {
     M[LD] = () => {
         const env_name = P[PC + 1]
         const store_addr = ENV.get(env_name)
-        const val = STORE.get(store_addr)
+        const val = loadStore(store_addr)[0]
         OS.push(val)
         PC += 2
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
@@ -1011,7 +1032,7 @@ function transition (state) {
         const env_name = P[PC + 1][0]
         const string_name = P[PC + 1][1]
         const store_addr = ENV.get(env_name)
-        STORE.set(store_addr, val)
+        setStore(store_addr, val)
         PC += 2
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
@@ -1057,7 +1078,10 @@ function display_STATE (state) {
 
     function display_STORE (store) {
         function log_map (v, k, m) {
-            console.log(k + '->' + JSON.stringify(v))
+            function stringify_entry (arr) {
+                return arr.map(JSON.stringify).join(' || ')
+            }
+            console.log(k + '-> ' + stringify_entry(v))
         }
         console.log('STORE:')
         store.forEach(log_map)
