@@ -977,7 +977,7 @@ function transition (state) {
         // Get closure
         const closure = OS.pop()
         const new_pc = closure[1]
-        const new_env_addr = closure[2]
+        const func_env_addr = closure[2]
         const num_to_extend = closure[3]
 
         // Save current state
@@ -991,29 +991,38 @@ function transition (state) {
         set_store(kont_os_addr, kont_os)
         set_store(kont_addr, kont)
 
-        // Make new env
-        const new_env = new Map(load_store(new_env_addr)[0])
-        const original_size = new_env.size
-        // Extend the new_env by num_to_extend (params.length + locals.length)
-        for (let i = 0; i < num_to_extend; i++) {
-            new_env.set(original_size + i, alloc())
+        function cont (func_env_arr) {
+            // Make new env
+            const new_env = new Map(func_env_arr)
+            const original_size = new_env.size
+            // Extend the new_env by num_to_extend (params.length + locals.length)
+            for (let i = 0; i < num_to_extend; i++) {
+                new_env.set(original_size + i, alloc())
+            }
+            // Add parameters
+            for (let i = 0; i < num_param; i++) {
+                let addr = new_env.get(original_size + i)
+                set_store(addr, params.pop())
+            }
+            // Transition to function
+            PC = new_pc
+            OS = []
+            ENV = new_env
+            KONT = kont_addr
+            if (TIME.split('.').length < MAX_TIME) {
+                TIME = TIME + '.' + PC
+            }
+            counter = 0
+            next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
         }
-        // Add parameters
-        for (let i = 0; i < num_param; i++) {
-            let addr = new_env.get(original_size + i)
-            set_store(addr, params.pop())
+        for (let func_env_arr of load_store(func_env_addr)) {
+            const copy = [Array.from(STORE), TIME, counter]
+            cont(func_env_arr)
+            // Restore state from copy
+            STORE = new Map(copy[0])
+            TIME = copy[1]
+            counter = copy[2]
         }
-
-        // Transition to function
-        PC = new_pc
-        OS = []
-        ENV = new_env
-        KONT = kont_addr
-        if (TIME.split('.').length < MAX_TIME) {
-            TIME = TIME + '.' + PC
-        }
-        counter = 0
-        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[RTN] = () => {
@@ -1089,14 +1098,14 @@ function cesk_run () {
     while (nextStates.length > 0) {
         let cur = nextStates.pop()
         if (strToIndex.has(stringify_state(cur))) {
-            console.log('DUPE')
-            display_STATE(cur)
+            //console.log('DUPE')
+            //display_STATE(cur)
             continue // If state has been visited
         }
         // Transition current state
         display_STATE(cur)
         let children = transition(cur)
-        //console.log('CHIDREN: ' + children.length)
+        console.log('CHIDREN: ' + children.length)
         // Add state to visited nodes
         nodes.push([cur, children])
         strToIndex.set(stringify_state(cur), nodes.length - 1)
@@ -1146,7 +1155,7 @@ function display_STATE (state) {
 
 P = parse_and_compile(`
     function f(x) {
-        return f(1);
+        return f(x+1);
     }
     f(5);
 `)
