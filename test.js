@@ -980,6 +980,17 @@ function transition (state) {
         const new_env_addr = closure[2]
         const num_to_extend = closure[3]
 
+        // Save current state
+        const kont_env = Array.from(ENV)
+        const kont_addr = TIME + '.' + PC + '.kont'
+        const kont_env_addr = kont_addr + '.env'
+        const kont_os_addr = kont_addr + '.os'
+        const kont_os = OS
+        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
+        set_store(kont_env_addr, kont_env)
+        set_store(kont_os_addr, kont_os)
+        set_store(kont_addr, kont)
+
         // Make new env
         const new_env = new Map(load_store(new_env_addr)[0])
         const original_size = new_env.size
@@ -992,17 +1003,6 @@ function transition (state) {
             let addr = new_env.get(original_size + i)
             set_store(addr, params.pop())
         }
-
-        // Save current state
-        const kont_env = Array.from(ENV)
-        const kont_addr = TIME + '.' + PC + '.kont'
-        const kont_env_addr = kont_addr + '.env'
-        const kont_os_addr = kont_addr + '.os'
-        const kont_os = OS
-        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
-        set_store(kont_env_addr, kont_env)
-        set_store(kont_os_addr, kont_os)
-        set_store(kont_addr, kont)
 
         // Transition to function
         PC = new_pc
