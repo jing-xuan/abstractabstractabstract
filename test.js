@@ -797,7 +797,7 @@ function transition (state) {
     let PC = state[0]
     // OS is operand stack, array where last element is top of stack
     // Stores numbers, bools and closures
-    // Closures represented by label, func PC, and the addr to ENV
+    // Closures represented by label, func PC, the addr to ENV, and number to extend by
     let OS = copyArr(state[1])
     // ENV is a map which maps names to addresses
     let ENV = copyMap(state[2])
@@ -954,53 +954,65 @@ function transition (state) {
     // extend the current env by num_consts and store
     M[LDF] = () => {
         const fun_addr = P[PC + 2]
-        const num_consts = P[PC + 3]
-        const new_env = copyMap(ENV)
-        // Extend the new_env by num_consts (params.length + locals.length)
-        for (let i = ENV.size; i < ENV.size + num_consts; i++) {
-            new_env.set(i, alloc())
-        }
+        const num_to_extend = P[PC + 3]
         const env_addr = fun_addr + '.env'
-        setStore(env_addr, Array.from(new_env))
+        setStore(env_addr, Array.from(ENV))
         const closure = ['CLOSURE']
         closure[1] = fun_addr
         closure[2] = env_addr
+        closure[3] = num_to_extend
         OS.push(closure)
         PC += 4
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[CALL] = () => {
-        const num_to_extend = P[PC + 1] // Number of parameters
-        const additional_vars = []
-        for (let i = 0; i < num_to_extend; i++) {
-            additional_vars.push(OS.pop())
+        // Get params
+        const num_param = P[PC + 1] // Number of parameters
+        const params = []
+        for (let i = 0; i < num_param; i++) {
+            params.push(OS.pop())
         }
+
+        // Get closure
         const closure = OS.pop()
-        const kont_env = copyArr(Array.from(ENV))
+        const new_pc = closure[1]
+        const new_env_addr = closure[2]
+        const num_to_extend = closure[3]
 
-        // Add parameters
-        let max_name = ENV.size
-        ENV = new Map(loadStore(closure[2])[0])
+        // Make new env
+        const new_env = new Map(loadStore(new_env_addr)[0])
+        const original_size = new_env.size
+        // Extend the new_env by num_to_extend (params.length + locals.length)
         for (let i = 0; i < num_to_extend; i++) {
-            let addr = ENV.get(max_name + i)
-            setStore(addr, additional_vars.pop())
+            new_env.set(original_size + i, alloc())
+        }
+        // Add parameters
+        for (let i = 0; i < num_param; i++) {
+            let addr = new_env.get(original_size + i)
+            setStore(addr, params.pop())
         }
 
-        counter = 0
+        // Save current state
+        const kont_env = Array.from(ENV)
         const kont_addr = TIME + '.' + PC + '.kont'
         const kont_env_addr = kont_addr + '.env'
         const kont_os_addr = kont_addr + '.os'
-        const kont_os = copyArr(OS)
+        const kont_os = OS
+        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
         setStore(kont_env_addr, kont_env)
         setStore(kont_os_addr, kont_os)
-        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
         setStore(kont_addr, kont)
+
+        // Transition to function
+        PC = new_pc
+        OS = []
+        ENV = new_env
         KONT = kont_addr
-        PC = closure[1]
         if (TIME.split('.').length < MAX_TIME) {
             TIME = TIME + '.' + PC
         }
+        counter = 0
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
@@ -1077,8 +1089,8 @@ function cesk_run () {
     while (nextStates.length > 0) {
         let cur = nextStates.pop()
         if (strToIndex.has(stringify_state(cur))) {
-            //console.log('DUPE')
-            //display_STATE(cur)
+            console.log('DUPE')
+            display_STATE(cur)
             continue // If state has been visited
         }
         // Transition current state
