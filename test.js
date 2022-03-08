@@ -771,12 +771,12 @@ function parse_and_compile (string) {
     return machine_code
 }
 
-function copyArr (arr) {
+function copy_arr (arr) {
     return JSON.parse(JSON.stringify(arr))
 }
 
-function copyMap (map) {
-    return new Map(JSON.parse(JSON.stringify(Array.from(map))))
+function copy_map (map) {
+    return new Map(Array.from(map))
 }
 
 // CESK STARTS HERE
@@ -798,11 +798,11 @@ function transition (state) {
     // OS is operand stack, array where last element is top of stack
     // Stores numbers, bools and closures
     // Closures represented by label, func PC, the addr to ENV, and number to extend by
-    let OS = copyArr(state[1])
+    let OS = copy_arr(state[1])
     // ENV is a map which maps names to addresses
-    let ENV = copyMap(state[2])
+    let ENV = copy_map(state[2])
     // STORE is a map which maps addresses to values
-    let STORE = copyMap(state[3])
+    let STORE = copy_map(state[3])
     // KONT is an address to the continuation stored in the STORE
     // Continuations stores PC, OS, ENV, previous KONT, and TIME
     let KONT = state[4]
@@ -924,23 +924,23 @@ function transition (state) {
     load_primitives()
 
     // Adds value to store
-    function setStore (addr, newVal) {
-        let newStr = JSON.stringify(newVal)
+    function set_store (addr, new_val) {
+        let new_str = JSON.stringify(new_val)
         if (STORE.has(addr)) {
             let arr = STORE.get(addr)
             for (let v of arr) {
-                if (newStr === JSON.stringify(v)) {
+                if (new_str === JSON.stringify(v)) {
                     return // Item already in array
                 }
             }
-            arr.push(newVal)
+            arr.push(new_val)
         } else {
-            STORE.set(addr, [newVal]) // First entry in store
+            STORE.set(addr, [new_val]) // First entry in store
         }
     }
 
     // Loads array of values from store
-    function loadStore (addr) {
+    function load_store (addr) {
         return STORE.get(addr)
     }
 
@@ -956,7 +956,7 @@ function transition (state) {
         const fun_addr = P[PC + 2]
         const num_to_extend = P[PC + 3]
         const env_addr = fun_addr + '.env'
-        setStore(env_addr, Array.from(ENV))
+        set_store(env_addr, Array.from(ENV))
         const closure = ['CLOSURE']
         closure[1] = fun_addr
         closure[2] = env_addr
@@ -981,7 +981,7 @@ function transition (state) {
         const num_to_extend = closure[3]
 
         // Make new env
-        const new_env = new Map(loadStore(new_env_addr)[0])
+        const new_env = new Map(load_store(new_env_addr)[0])
         const original_size = new_env.size
         // Extend the new_env by num_to_extend (params.length + locals.length)
         for (let i = 0; i < num_to_extend; i++) {
@@ -990,7 +990,7 @@ function transition (state) {
         // Add parameters
         for (let i = 0; i < num_param; i++) {
             let addr = new_env.get(original_size + i)
-            setStore(addr, params.pop())
+            set_store(addr, params.pop())
         }
 
         // Save current state
@@ -1000,9 +1000,9 @@ function transition (state) {
         const kont_os_addr = kont_addr + '.os'
         const kont_os = OS
         const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
-        setStore(kont_env_addr, kont_env)
-        setStore(kont_os_addr, kont_os)
-        setStore(kont_addr, kont)
+        set_store(kont_env_addr, kont_env)
+        set_store(kont_os_addr, kont_os)
+        set_store(kont_addr, kont)
 
         // Transition to function
         PC = new_pc
@@ -1019,14 +1019,14 @@ function transition (state) {
     M[RTN] = () => {
         const top_val = OS.pop()
         const kont_addr = KONT
-        const kont = loadStore(kont_addr)[0]
+        const kont = load_store(kont_addr)[0]
         const kont_env_addr = kont[2]
         const kont_os_addr = kont[1]
         KONT = kont[3]
         TIME = kont[4]
-        OS = loadStore(kont_os_addr)[0]
+        OS = load_store(kont_os_addr)[0]
         OS.push(top_val)
-        ENV = new Map(loadStore(kont_env_addr)[0])
+        ENV = new Map(load_store(kont_env_addr)[0])
         PC = kont[0] + 1
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
@@ -1034,7 +1034,7 @@ function transition (state) {
     M[LD] = () => {
         const env_name = P[PC + 1]
         const store_addr = ENV.get(env_name)
-        const vals = loadStore(store_addr)
+        const vals = load_store(store_addr)
 
         function cont (val, PC, OS) {
             OS.push(val)
@@ -1043,7 +1043,7 @@ function transition (state) {
         }
 
         for (let val of vals) {
-            cont(val, PC, copyArr(OS))
+            cont(val, PC, copy_arr(OS))
         }
     }
 
@@ -1053,7 +1053,7 @@ function transition (state) {
         const env_name = P[PC + 1][0]
         const string_name = P[PC + 1][1]
         const store_addr = ENV.get(env_name)
-        setStore(store_addr, val)
+        set_store(store_addr, val)
         PC += 2
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
