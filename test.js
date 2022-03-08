@@ -776,7 +776,7 @@ function copy_arr (arr) {
 }
 
 function copy_map (map) {
-    return new Map(Array.from(map))
+    return new Map(copy_arr(Array.from(map)))
 }
 
 // CESK STARTS HERE
@@ -941,7 +941,7 @@ function transition (state) {
 
     // Loads array of values from store
     function load_store (addr) {
-        return STORE.get(addr)
+        return JSON.parse(JSON.stringify(STORE.get(addr)))
     }
 
     // gives the address
@@ -1098,7 +1098,7 @@ function cesk_run () {
     while (nextStates.length > 0) {
         let cur = nextStates.pop()
         if (strToIndex.has(stringify_state(cur))) {
-            //console.log('DUPE')
+            console.log('DUPE')
             //display_STATE(cur)
             continue // If state has been visited
         }
@@ -1180,13 +1180,12 @@ P = parse_and_compile(`
         }
         return g();
     }
-    f(5);
-    f(6);
+    f(1);
+    f(2);
 `)
-
 
 print_program(P)
 
-let MAX_TIME = 3 // Maximum length of TIME, will be truncated if exceeding
-let MAX_COUNT = 50 // Number of iterations to run
+let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
+let MAX_COUNT = -1 // Number of iterations to run
 cesk_run()
