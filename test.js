@@ -1112,7 +1112,7 @@ function cesk_run () {
         // Add children to stack
         nextStates.push(...[...children].reverse()) // shallow copy, reverse and append
         // Bound number of states visited
-        if (nodes.size == MAX_COUNT) {
+        if (nodes.length == MAX_COUNT) {
             console.log('BROKE')
             break
         }
@@ -1120,6 +1120,26 @@ function cesk_run () {
 }
 
 function display_STATE (state) {
+    function display_PC (pc) {
+        const op = P[pc]
+        let s = get_name(P[pc])
+        if (
+            op === LDCN ||
+            op === LDCB ||
+            op === GOTO ||
+            op === JOF ||
+            op === ASSIGN ||
+            op === LDF ||
+            op === LD ||
+            op === CALL
+        ) {
+            s = s + ' ' + stringify(P[pc + 1])
+        } else if (op === LDF) {
+            s = s + ' ' + stringify(P[pc + 1]) + ' ' + stringify(P[pc + 2])
+        }
+        return s
+    }
+
     function display_ENV (env) {
         function log_map (v, k, m) {
             console.log(k + '->' + v)
@@ -1148,31 +1168,25 @@ function display_STATE (state) {
     display_ENV(ENV)
     display_STORE(STORE)
     console.log('TIME: ' + TIME + '\n')
-    console.log('KONT*: ' + KONT)
-    console.log('PC: ' + PC + ' ' + get_name(P[PC]) + '\n')
+    console.log('KONT*: ' + KONT + '\n')
+    console.log('PC: ' + PC + '\t' + display_PC(PC) + '\n')
     console.log('----------------------------------')
 }
 
 P = parse_and_compile(`
     function f(x) {
-        return f(x+1);
+        function g(){
+            return x;
+        }
+        return g();
     }
     f(5);
+    f(6);
 `)
 
-// P = parse_and_compile(`
-//     const x = 1;
-//     const y = 2;
-//     function f(x, y) {
-//         const z = 8;
-//         return x+y-z;
-//     }
-//     f(x, y);
-//     f(x, y)+x;
-// `)
 
 print_program(P)
 
 let MAX_TIME = 3 // Maximum length of TIME, will be truncated if exceeding
-let MAX_COUNT = 20 // Number of iterations to run
+let MAX_COUNT = 50 // Number of iterations to run
 cesk_run()
