@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <title>AbstractAbstractAbstract</title>
+        
+        <style>
+            form {
+                width: 50vw;
+            }
+            
+            body {
+                display: flex;
+                flex-direction: row;
+            }
+        </style>
+    
+    </head>
+
+    <body>
+        <form method = "get" id = "codeForm">
+            <textarea rows = "50" cols = "100" name = "code" id = "code">
+            1+1;
+            </textarea>
+            <input type = "submit" value = "submit"/>
+        </form>
+        <textarea rows = "50" cols = "100" id = "result" readonly>
+            Result will appear here
+        </textarea>
+    </body>
+    <script>
+        $("#codeForm").on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: "/runcode",
+                type: "get",
+                data: {
+                    'usercode' : $("#code").val()
+                },
+                success: function(data) {
+                    console.log(data);
+                    $("textarea#result").val(data);
+                }
+            });
+        });
+    </script>
+</html>

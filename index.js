@@ -2,10 +2,15 @@ const { createContext, runInContext, parseError } = require('./hacked-slang/dist
 //const { createContext, runInContext, parseError } = require('js-slang');
 
 const colors = require('colors/safe');
-const {readFileSync }= require('fs');
+// const {readFileSync }= require('fs');
 
 const DEFAULT_CHAPTER = -1
 const DEFAULT_VARIANT = 'default'
+
+var express = require("express");
+var app = express();
+var fs = require('fs').promises;
+
 
 /**
  * Source Interpreter
@@ -35,7 +40,7 @@ async function interpret (code, chapter, variant) {
 async function test (chapter, variant, source_code) {
   try {
     test_output = await interpret(source_code, chapter, variant)
-    console.log(test_output)
+    return test_output;
   } catch (error) {
     try {
       console.log(colors.red(parseError(error)))
@@ -45,10 +50,48 @@ async function test (chapter, variant, source_code) {
   }
 }
 
-async function test_source () {
-  const test_case = readFileSync('test.js', { encoding: 'utf-8' }).trim()
-
-  return await test(DEFAULT_CHAPTER, DEFAULT_VARIANT, test_case)
+async function test_source (usercode) {
+  // const test_case = fs.readFile('test.js', { encoding: 'utf-8' }).trim()
+  // var test_case = "";
+  // fs.readFile('test.js', 'utf-8', function(err, data){
+  //   test_case = data.toString().trim();
+  //   // test_case += "\nP = parse_and_compile('" + usercode + "')\n"
+  //   // test_case += "cesk_run()"
+  //   // console.log(test_case);
+  // })
+  var base_code = await fs.readFile('test.js', 'utf-8')
+  var test_code = base_code.trim()
+  test_code += "\nP = parse_and_compile('" + usercode + "')\n"
+  test_code += "print_program(P)\n"
+  test_code += "cesk_run()\n"
+  // console.log(test_code);
+  var test_output = await test(DEFAULT_CHAPTER, DEFAULT_VARIANT, test_code)
+  console.log(test_output);
+  return test_output;
 }
 
-test_source()
+
+// test_source("1 + 10;1+1;")
+
+app.get("/", function(req, res) {
+  // var output = test_source();
+  // output.then(function(result) {
+  //   console.log(result);
+  //   res.send(result);
+  // })
+  res.sendFile(__dirname + "/views/index.html");
+})
+
+app.get("/runcode", async function(req, res) {
+  const usercode = (req.query.usercode).replace(/(\r\n|\n|\r)/gm, "")
+  console.log(usercode);
+  var result = await test_source(usercode);
+  // console.log(result);
+  res.status(200).send(result);
+})
+
+var server = app.listen(8888, function() {
+  var host = server.address().address;
+  var port = server.address().port;
+  console.log("listening at %s:%s", host, port);
+})

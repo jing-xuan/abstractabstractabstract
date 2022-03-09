@@ -102,6 +102,8 @@ function get_name (op) {
     return lookup(OPCODES)
 }
 
+var output = "";
+
 // pretty-print the program
 function print_program (P) {
     let i = 0
@@ -130,6 +132,7 @@ function print_program (P) {
         } else {
         }
         console.log(s)
+        output += s + "\n";
     }
 }
 
@@ -1030,11 +1033,13 @@ function transition (state) {
     return next_states
 }
 
+// var output = "";
+
 function cesk_run () {
     let count = 0
     var currentStates = [initialState]
     while (currentStates.length > 0) {
-        display_STATE(currentStates[0])
+        write_STATE(currentStates[0])
         currentStates = transition(currentStates[0])
         count++
         if (count == 20) {
@@ -1042,6 +1047,20 @@ function cesk_run () {
             break
         }
     }
+    return output;
+}
+
+function write_STATE (state) {
+    let [PC, OS, ENV, STORE, KONT, TIME, counter] = state
+    output += '----------------------------------\n';
+    output += 'OS: ';
+    output += OS + "\n";
+    // ENV)
+    // display_STORE(STORE)
+    //console.log("TIME: " + TIME + "\n");
+    //console.log("KONT*: " + KONT);
+    output += 'PC: ' + PC + ' ' + get_name(P[PC]) + '\n'
+    output += '----------------------------------';
 }
 
 function display_STATE (state) {
@@ -1075,14 +1094,17 @@ function display_STATE (state) {
     console.log('----------------------------------')
 }
 
-P = parse_and_compile(`
-    function f() {
-        return f();
-    }
-    f();
-`)
+// P = parse_and_compile(`
+//     // function f() {
+//     //     return f();
+//     // }
+//     // f();
+//     1 + 1;
+//     1 + 10;
+// `)
 
-print_program(P)
+// print_program(P)
 
-cesk_run()
-// run()
+// cesk_run()
+// // run()
+
