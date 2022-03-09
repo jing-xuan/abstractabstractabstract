@@ -1083,6 +1083,10 @@ function transition (state) {
         }
     }
 
+    M[GOTO] = () => {
+        next_states = [[P[PC + 1], OS, ENV, STORE, KONT, TIME, counter]]
+    }
+
     M[DONE] = () => {
         console.log('FINISHED EXECUTION')
         next_states = []
@@ -1205,13 +1209,17 @@ P = parse_and_compile(`
     }
     f(1);
 `)
-P = parse_and_compile(`
-    (11<2)?1:2;
-`)
+
+// P = parse_and_compile(`
+//     function f(x) {
+//         return x===1 ? 1 :f(x-1);
+//     }
+//     f(3);
+// `)
 
 const MAX_NUM = 10
 const MIN_NUM = -10
-let MAX_TIME = 5 // Maximum length of TIME, will be truncated if exceeding
+let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = -1 // Number of iterations to run
 cesk_run()
 print_program(P)
