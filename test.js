@@ -804,7 +804,7 @@ function transition (state) {
     // STORE is a map which maps addresses to values
     let STORE = copy_map(state[3])
     // KONT is an address to the continuation stored in the STORE
-    // Continuations stores PC, OS, ENV, previous KONT, and TIME
+    // Continuations stores PC, OS, ENV, previous KONT, TIME and counter
     let KONT = state[4]
     // TIME, concatenated PC of call stack
     let TIME = state[5]
@@ -947,7 +947,7 @@ function transition (state) {
     // gives the address
     function alloc () {
         counter += 1
-        return TIME + '.' + counter
+        return TIME + '.v' + counter
     }
 
     // load a closure into the OS to either CALL or ASSIGN
@@ -986,7 +986,7 @@ function transition (state) {
         const kont_env_addr = kont_addr + '.env'
         const kont_os_addr = kont_addr + '.os'
         const kont_os = OS
-        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
+        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME, counter]
         set_store(kont_env_addr, kont_env)
         set_store(kont_os_addr, kont_os)
         set_store(kont_addr, kont)
@@ -1028,22 +1028,27 @@ function transition (state) {
     M[RTN] = () => {
         const top_val = OS.pop()
         const kont_addr = KONT
-        const kont = load_store(kont_addr)[0]
-        const kont_env_addr = kont[2]
-        const kont_os_addr = kont[1]
-        KONT = kont[3]
-        TIME = kont[4]
-        OS = load_store(kont_os_addr)[0]
-        OS.push(top_val)
-        ENV = new Map(load_store(kont_env_addr)[0])
-        PC = kont[0] + 1
-        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
+
+        for (let kont of load_store(kont_addr)) {
+            const kont_os_addr = kont[1]
+            const kont_env_addr = kont[2]
+            KONT = kont[3]
+            TIME = kont[4]
+            counter = kont[5]
+            for (let OS of load_store(kont_os_addr)) {
+                OS.push(top_val)
+                for (let env_arr of load_store(kont_env_addr)) {
+                    ENV = new Map(env_arr)
+                    PC = kont[0] + 1
+                    next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+                }
+            }
+        }
     }
 
     M[LD] = () => {
         const env_name = P[PC + 1]
         const store_addr = ENV.get(env_name)
-        const vals = load_store(store_addr)
 
         function cont (val, PC, OS) {
             OS.push(val)
@@ -1051,7 +1056,7 @@ function transition (state) {
             next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
         }
 
-        for (let val of vals) {
+        for (let val of load_store(store_addr)) {
             cont(val, PC, copy_arr(OS))
         }
     }
@@ -1175,17 +1180,13 @@ function display_STATE (state) {
 
 P = parse_and_compile(`
     function f(x) {
-        function g(){
-            return x;
-        }
-        return g();
+        return 10;
     }
-    f(1);
-    f(2);
+    f(7);
+    f(8);
 `)
-
-print_program(P)
 
 let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = -1 // Number of iterations to run
 cesk_run()
+print_program(P)
