@@ -28,6 +28,8 @@ unop    ::= !
 params  ::= ε | name ( , name ) . . .
 */
 
+const { response } = require("express")
+
 // OP-CODES
 
 // op-codes of machine instructions, used by compiler
@@ -728,7 +730,8 @@ function parse_and_compile (string) {
                 (is_literal(expr) ||
                     is_undefined_expression(expr) ||
                     is_application(expr) ||
-                    is_operator_combination(expr))
+                    is_operator_combination(expr) ||
+                    is_name(expr))
             ) {
                 add_nullary_instruction(RTN)
             } else {
@@ -773,12 +776,12 @@ function parse_and_compile (string) {
     return machine_code
 }
 
-function copyArr (arr) {
+function copy_arr (arr) {
     return JSON.parse(JSON.stringify(arr))
 }
 
-function copyMap (map) {
-    return new Map(JSON.parse(JSON.stringify(Array.from(map))))
+function copy_map (map) {
+    return new Map(copy_arr(Array.from(map)))
 }
 
 // CESK STARTS HERE
@@ -799,14 +802,14 @@ function transition (state) {
     let PC = state[0]
     // OS is operand stack, array where last element is top of stack
     // Stores numbers, bools and closures
-    // Closures represented by label, func PC, and the addr to ENV
-    let OS = copyArr(state[1])
+    // Closures represented by label, func PC, the addr to ENV, and number to extend by
+    let OS = copy_arr(state[1])
     // ENV is a map which maps names to addresses
-    let ENV = copyMap(state[2])
+    let ENV = copy_map(state[2])
     // STORE is a map which maps addresses to values
-    let STORE = copyMap(state[3])
+    let STORE = copy_map(state[3])
     // KONT is an address to the continuation stored in the STORE
-    // Continuations stores PC, OS, ENV, previous KONT, and TIME
+    // Continuations stores PC, OS, ENV, previous KONT, TIME and counter
     let KONT = state[4]
     // TIME, concatenated PC of call stack
     let TIME = state[5]
@@ -818,12 +821,19 @@ function transition (state) {
 
     let M = [] // Maps opcodes to functions that set next_states
 
+    const UNUM = 'unum' // Unknown number
+    const UBOOL = 'ubool' // Unknown bool
+
     // Adds to M simple instructions (opcode 0-14) that only manipulate OS and PC
     function load_primitives () {
         let MM = []
 
         MM[LDCN] = () => {
-            OS.push(P[PC + 1]) // value
+            let val = P[PC + 1]
+            if (val < MIN_NUM || val > MAX_NUM) {
+                val = UNUM
+            }
+            OS.push(val)
             PC += 2
         }
 
@@ -836,11 +846,6 @@ function transition (state) {
             OS.push('undef')
             PC += 1
         }
-
-        const MAX_NUM = 10
-        const MIN_NUM = -10
-        const UNUM = 'unum' // Unknown number
-        const UBOOL = 'ubool' // Unknown bool
 
         function applyNumNumBinop (f) {
             let b = OS.pop()
@@ -925,97 +930,162 @@ function transition (state) {
     }
     load_primitives()
 
+    // Adds value to store
+    function set_store (addr, new_val) {
+        let new_str = JSON.stringify(new_val)
+        if (STORE.has(addr)) {
+            let arr = STORE.get(addr)
+            for (let v of arr) {
+                if (new_str === JSON.stringify(v)) {
+                    return // Item already in array
+                }
+            }
+            arr.push(new_val)
+        } else {
+            STORE.set(addr, [new_val]) // First entry in store
+        }
+    }
+
+    // Loads array of values from store
+    function load_store (addr) {
+        return JSON.parse(JSON.stringify(STORE.get(addr)))
+    }
+
     // gives the address
     function alloc () {
         counter += 1
-        return TIME + '.' + counter
+        return TIME + '.v' + counter
     }
 
     // load a closure into the OS to either CALL or ASSIGN
     // extend the current env by num_consts and store
     M[LDF] = () => {
         const fun_addr = P[PC + 2]
-        const num_consts = P[PC + 3]
-        const new_env = copyMap(ENV)
-        // extend the new_env by num_consts
-        for (var i = ENV.size; i < ENV.size + num_consts; i++) {
-            new_env.set(i, alloc())
-        }
+        const num_to_extend = P[PC + 3]
         const env_addr = fun_addr + '.env'
-        STORE.set(env_addr, copyArr(Array.from(new_env)))
+        set_store(env_addr, Array.from(ENV))
         const closure = ['CLOSURE']
         closure[1] = fun_addr
         closure[2] = env_addr
+        closure[3] = num_to_extend
         OS.push(closure)
         PC += 4
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
     M[CALL] = () => {
-        const num_to_extend = P[PC + 1] // Number of parameters
-        const additional_vars = []
-        for (var i = 0; i < num_to_extend; i++) {
-            additional_vars.push(OS.pop())
+        // Get params
+        const num_param = P[PC + 1] // Number of parameters
+        const params = []
+        for (let i = 0; i < num_param; i++) {
+            params.push(OS.pop())
         }
+
+        // Get closure
         const closure = OS.pop()
-        const kont_env = copyArr(Array.from(ENV))
+        const new_pc = closure[1]
+        const func_env_addr = closure[2]
+        const num_to_extend = closure[3]
 
-        // Add parameters
-        let max_name = ENV.size
-        ENV = new Map(STORE.get(closure[2]))
-        for (var i = 0; i < num_to_extend; i++) {
-            var addr = ENV.get(max_name + i)
-            STORE.set(addr, additional_vars.pop())
-        }
-
-        counter = 0
+        // Save current state
+        const kont_env = Array.from(ENV)
         const kont_addr = TIME + '.' + PC + '.kont'
         const kont_env_addr = kont_addr + '.env'
         const kont_os_addr = kont_addr + '.os'
-        const kont_os = copyArr(OS)
-        STORE.set(kont_env_addr, kont_env)
-        STORE.set(kont_os_addr, kont_os)
-        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME]
-        STORE.set(kont_addr, kont)
-        KONT = kont_addr
-        PC = closure[1]
-        TIME = TIME + '.' + PC
-        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
+        const kont_os = OS
+        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME, counter]
+        set_store(kont_env_addr, kont_env)
+        set_store(kont_os_addr, kont_os)
+        set_store(kont_addr, kont)
+
+        function cont (func_env_arr) {
+            // Make new env
+            const new_env = new Map(func_env_arr)
+            const original_size = new_env.size
+            // Extend the new_env by num_to_extend (params.length + locals.length)
+            for (let i = 0; i < num_to_extend; i++) {
+                new_env.set(original_size + i, alloc())
+            }
+            // Add parameters
+            for (let i = 0; i < num_param; i++) {
+                let addr = new_env.get(original_size + i)
+                set_store(addr, params.pop())
+            }
+            // Transition to function
+            PC = new_pc
+            OS = []
+            ENV = new_env
+            KONT = kont_addr
+            if (TIME.split('.').length < MAX_TIME) {
+                TIME = TIME + '.' + PC
+            }
+            counter = 0
+            next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        }
+        for (let func_env_arr of load_store(func_env_addr)) {
+            const copy = [Array.from(STORE), TIME, counter]
+            cont(func_env_arr)
+            // Restore state from copy
+            STORE = new Map(copy[0])
+            TIME = copy[1]
+            counter = copy[2]
+        }
     }
 
     M[RTN] = () => {
         const top_val = OS.pop()
         const kont_addr = KONT
-        const kont = STORE.get(kont_addr)
-        const kont_env_addr = kont[2]
-        const kont_os_addr = kont[1]
-        KONT = kont[3]
-        TIME = kont[4]
-        OS = STORE.get(kont_os_addr)
-        OS.push(top_val)
-        ENV = new Map(STORE.get(kont_env_addr))
-        PC = kont[0] + 1
-        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
+
+        for (let kont of load_store(kont_addr)) {
+            const kont_os_addr = kont[1]
+            const kont_env_addr = kont[2]
+            KONT = kont[3]
+            TIME = kont[4]
+            counter = kont[5]
+            for (let OS of load_store(kont_os_addr)) {
+                OS.push(top_val)
+                for (let env_arr of load_store(kont_env_addr)) {
+                    ENV = new Map(env_arr)
+                    PC = kont[0] + 1
+                    next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+                }
+            }
+        }
     }
 
     M[LD] = () => {
         const env_name = P[PC + 1]
         const store_addr = ENV.get(env_name)
-        const val = STORE.get(store_addr)
-        OS.push(val)
+
+        function cont (val, PC, OS) {
+            OS.push(val)
+            PC += 2
+            next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
+        }
+
+        for (let val of load_store(store_addr)) {
+            cont(val, PC, copy_arr(OS))
+        }
+    }
+
+    M[ASSIGN] = () => {
+        const val = OS.pop()
+        const env_name = P[PC + 1][0]
+        const string_name = P[PC + 1][1]
+        const store_addr = ENV.get(env_name)
+        set_store(store_addr, val)
         PC += 2
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
     }
 
-    M[ASSIGN] = () => {
-        const val = OS[OS.length - 1]
-        OS.pop()
-        const env_name = P[PC + 1][0]
-        const string_name = P[PC + 1][1]
-        const store_addr = ENV.get(env_name)
-        STORE.set(store_addr, val)
-        PC += 2
-        next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
+    M[JOF] = () => {
+        const val = OS.pop()
+        if (val === true || val === UBOOL) {
+            next_states.push([PC + 2, OS, ENV, STORE, KONT, TIME, counter])
+        }
+        if (val === false || val === UBOOL) {
+            next_states.push([P[PC + 1], OS, ENV, STORE, KONT, TIME, counter])
+        }
     }
 
     M[DONE] = () => {
@@ -1036,18 +1106,44 @@ function transition (state) {
 // var output = "";
 
 function cesk_run () {
-    let count = 0
-    var currentStates = [initialState]
-    while (currentStates.length > 0) {
-        write_STATE(currentStates[0])
-        currentStates = transition(currentStates[0])
-        count++
-        if (count == 20) {
+
+    function stringify_state (state) {
+        let copy = [...state] // Shallow copy
+        copy[2] = Array.from(state[2]) // ENV
+        copy[3] = Array.from(state[3]) // STORE
+        return JSON.stringify(copy)
+    }
+
+    let nextStates = [initialState] // Stack of states to DFS
+
+    let nodes = [] // contains [state,children] of visited nodes
+    let strToIndex = new Map() // Maps stringified state to index in nodes
+
+    while (nextStates.length > 0) {
+        let cur = nextStates.pop()
+        if (strToIndex.has(stringify_state(cur))) {
+            console.log('DUPE')
+            //display_STATE(cur)
+            continue // If state has been visited
+        }
+        // Transition current state
+        // write_STATE(cur)
+        display_STATE(cur);
+        let children = transition(cur)
+        console.log('CHIDREN: ' + children.length)
+        // Add state to visited nodes
+        nodes.push([cur, children])
+        strToIndex.set(stringify_state(cur), nodes.length - 1)
+        // Add children to stack
+        nextStates.push(...[...children].reverse()) // shallow copy, reverse and append
+        // Bound number of states visited
+        if (nodes.length == MAX_COUNT) {
             console.log('BROKE')
             break
         }
     }
-    return output;
+    // response = {'code' : output, 'states' : nodes}
+    return nodes;
 }
 
 function write_STATE (state) {
@@ -1064,6 +1160,26 @@ function write_STATE (state) {
 }
 
 function display_STATE (state) {
+    function display_PC (pc) {
+        const op = P[pc]
+        let s = get_name(P[pc])
+        if (
+            op === LDCN ||
+            op === LDCB ||
+            op === GOTO ||
+            op === JOF ||
+            op === ASSIGN ||
+            op === LDF ||
+            op === LD ||
+            op === CALL
+        ) {
+            s = s + ' ' + stringify(P[pc + 1])
+        } else if (op === LDF) {
+            s = s + ' ' + stringify(P[pc + 1]) + ' ' + stringify(P[pc + 2])
+        }
+        return s
+    }
+
     function display_ENV (env) {
         function log_map (v, k, m) {
             console.log(k + '->' + v)
@@ -1075,7 +1191,10 @@ function display_STATE (state) {
 
     function display_STORE (store) {
         function log_map (v, k, m) {
-            console.log(k + '->' + JSON.stringify(v))
+            function stringify_entry (arr) {
+                return arr.map(JSON.stringify).join(' || ')
+            }
+            console.log(k + '-> ' + stringify_entry(v))
         }
         console.log('STORE:')
         store.forEach(log_map)
@@ -1088,23 +1207,36 @@ function display_STATE (state) {
     console.log(OS)
     display_ENV(ENV)
     display_STORE(STORE)
-    //console.log("TIME: " + TIME + "\n");
-    //console.log("KONT*: " + KONT);
-    console.log('PC: ' + PC + ' ' + get_name(P[PC]) + '\n')
+    console.log('TIME: ' + TIME + '\n')
+    console.log('KONT*: ' + KONT + '\n')
+    console.log('PC: ' + PC + '\t' + display_PC(PC) + '\n')
     console.log('----------------------------------')
 }
 
-// P = parse_and_compile(`
-//     // function f() {
-//     //     return f();
-//     // }
-//     // f();
-//     1 + 1;
-//     1 + 10;
-// `)
+P = parse_and_compile(`
+    function f(x) {
+        function g(){
+            return x;
+        }
+        return g;
+    }
+    f(7)();
+    f(8)();
+`)
+P = parse_and_compile(`
+    function f(x) {
+        return f(x+1);
+    }
+    f(1);
+`)
+P = parse_and_compile(`
+    (11<2)?1:2;
+`)
 
-// print_program(P)
-
+const MAX_NUM = 10
+const MIN_NUM = -10
+let MAX_TIME = 5 // Maximum length of TIME, will be truncated if exceeding
+let MAX_COUNT = -1 // Number of iterations to run
 // cesk_run()
-// // run()
+// print_program(P)
 

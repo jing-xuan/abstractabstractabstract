@@ -57,13 +57,8 @@ function extractErrorLocation(errorStack, lineOffset, errorLocator) {
     return undefined;
 }
 function getErrorLocation(error, lineOffset = 0) {
-    const browser = getBrowserType();
-    const errorLocator = EVAL_LOCATORS.find(locator => locator.browser === browser);
     const errorStack = error.stack;
-    if (errorStack && errorLocator) {
-        return extractErrorLocation(errorStack, lineOffset, errorLocator);
-    }
-    else if (errorStack) {
+    if (errorStack) {
         // if browser is unsupported try all supported locators until the first success
         return EVAL_LOCATORS.map(locator => extractErrorLocation(errorStack, lineOffset, locator)).find(x => x !== undefined);
     }

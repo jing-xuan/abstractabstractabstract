@@ -66,7 +66,7 @@ async function test_source (usercode) {
   test_code += "cesk_run()\n"
   // console.log(test_code);
   var test_output = await test(DEFAULT_CHAPTER, DEFAULT_VARIANT, test_code)
-  console.log(test_output);
+  // console.log(test_output);
   return test_output;
 }
 
@@ -84,7 +84,7 @@ app.get("/", function(req, res) {
 
 app.get("/runcode", async function(req, res) {
   const usercode = (req.query.usercode).replace(/(\r\n|\n|\r)/gm, "")
-  console.log(usercode);
+  // console.log(usercode);
   var result = await test_source(usercode);
   // console.log(result);
   res.status(200).send(result);
