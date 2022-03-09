@@ -816,6 +816,9 @@ function transition (state) {
 
     let M = [] // Maps opcodes to functions that set next_states
 
+    const UNUM = 'unum' // Unknown number
+    const UBOOL = 'ubool' // Unknown bool
+
     // Adds to M simple instructions (opcode 0-14) that only manipulate OS and PC
     function load_primitives () {
         let MM = []
@@ -838,9 +841,6 @@ function transition (state) {
             OS.push('undef')
             PC += 1
         }
-
-        const UNUM = 'unum' // Unknown number
-        const UBOOL = 'ubool' // Unknown bool
 
         function applyNumNumBinop (f) {
             let b = OS.pop()
@@ -1064,14 +1064,23 @@ function transition (state) {
     }
 
     M[ASSIGN] = () => {
-        const val = OS[OS.length - 1]
-        OS.pop()
+        const val = OS.pop()
         const env_name = P[PC + 1][0]
         const string_name = P[PC + 1][1]
         const store_addr = ENV.get(env_name)
         set_store(store_addr, val)
         PC += 2
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
+    }
+
+    M[JOF] = () => {
+        const val = OS.pop()
+        if (val === true || val === UBOOL) {
+            next_states.push([PC + 2, OS, ENV, STORE, KONT, TIME, counter])
+        }
+        if (val === false || val === UBOOL) {
+            next_states.push([P[PC + 1], OS, ENV, STORE, KONT, TIME, counter])
+        }
     }
 
     M[DONE] = () => {
@@ -1182,15 +1191,27 @@ function display_STATE (state) {
 
 P = parse_and_compile(`
     function f(x) {
-        return 10;
+        function g(){
+            return x;
+        }
+        return g;
     }
-    f(7);
-    f(11);
+    f(7)();
+    f(8)();
+`)
+P = parse_and_compile(`
+    function f(x) {
+        return f(x+1);
+    }
+    f(1);
+`)
+P = parse_and_compile(`
+    (11<2)?1:2;
 `)
 
 const MAX_NUM = 10
 const MIN_NUM = -10
-let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
+let MAX_TIME = 5 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = -1 // Number of iterations to run
 cesk_run()
 print_program(P)
