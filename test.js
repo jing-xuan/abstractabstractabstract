@@ -821,7 +821,11 @@ function transition (state) {
         let MM = []
 
         MM[LDCN] = () => {
-            OS.push(P[PC + 1]) // value
+            let val = P[PC + 1]
+            if (val < MIN_NUM || val > MAX_NUM) {
+                val = UNUM
+            }
+            OS.push(val)
             PC += 2
         }
 
@@ -835,8 +839,6 @@ function transition (state) {
             PC += 1
         }
 
-        const MAX_NUM = 10
-        const MIN_NUM = -10
         const UNUM = 'unum' // Unknown number
         const UBOOL = 'ubool' // Unknown bool
 
@@ -1183,9 +1185,11 @@ P = parse_and_compile(`
         return 10;
     }
     f(7);
-    f(8);
+    f(11);
 `)
 
+const MAX_NUM = 10
+const MIN_NUM = -10
 let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = -1 // Number of iterations to run
 cesk_run()
