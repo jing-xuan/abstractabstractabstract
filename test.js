@@ -1204,10 +1204,15 @@ P = parse_and_compile(`
     f(8)();
 `)
 P = parse_and_compile(`
-    function f(x) {
-        return f(x+1);
+function f(x, y) {
+    return x + y;
     }
-    f(1);
+    function xyz() {
+    return 2;
+    }
+    f(3, 4);
+    f(3,4);
+    xyz();
 `)
 
 // P = parse_and_compile(`
