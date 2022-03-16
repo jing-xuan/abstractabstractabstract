@@ -1,6 +1,11 @@
+<!DOCTYPE html>
 <html>
     <head>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+        <script>
+            mermaid.initialize({startOnLoad: true});
+        </script>
         <title>AbstractAbstractAbstract</title>
         
         <style>
@@ -9,8 +14,8 @@
             }
             
             body {
-                display: flex;
-                flex-direction: row;
+                /* display: flex; */
+                /* flex-direction: row; */
             }
         </style>
     
@@ -18,16 +23,65 @@
 
     <body>
         <form method = "get" id = "codeForm">
-            <textarea rows = "50" cols = "100" name = "code" id = "code">
+            <textarea rows = "10" cols = "100" name = "code" id = "code">
             1+1;
             </textarea>
             <input type = "submit" value = "submit"/>
         </form>
-        <textarea rows = "50" cols = "100" id = "result" readonly>
+        <textarea rows = "10" cols = "100" id = "result" readonly>
             Result will appear here
         </textarea>
+        <div id = "flowchart">
+            Flowchart Appears here
+        </div>
     </body>
     <script>
+
+        function displayGraph(states, stateIdMap, instrMap, functionMap) {
+            let subgraphID = 0
+            let ended = 0
+            console.log(functionMap)
+            var code = "flowchart TD\n"
+            numNodes = states.length
+            let idMap = new Map(stateIdMap)
+            // console.log(idMap.get(JSON.stringify(states[0][0])))
+            for (let i = 0; i < numNodes; i++) {
+                let nodeId = idMap.get(JSON.stringify(states[i][0]))
+                // let nodeId = states[i][0][0]
+                const instr = String(instrMap[states[i][0][0]]).replace(/\[|\]|"/g, " ")
+                code += nodeId + "(" + instr + ")" + "\n" 
+            }
+            for (let i = 0; i < numNodes; i++) {
+                let nodeId = idMap.get(JSON.stringify(states[i][0]))
+                let numChildren = states[i][1].length
+                if (functionMap[states[i][0][0]] != undefined && functionMap[states[i][0][0]] != "END") {
+                    code += "subgraph fid" + String(subgraphID) + " [" + functionMap[states[i][0][0]] + "]\n"
+                    ended += 1
+                    subgraphID += 1
+                } 
+                // console.log(nodePC)
+                for (let j = 0; j < numChildren; j++) {
+                    let childPC = states[i][1][j][0]
+                    // if (functionMap[nodePC] != undefined) {
+                    //     console.log("start of function")
+                    // } 
+                    code += nodeId + "-->" + idMap.get(JSON.stringify(states[i][1][j])) + "\n"
+                    if (functionMap[childPC] == "END" && ended > 0) {
+                        code += "end\n"
+                        ended -= 1
+                    }
+                }
+                console.log(nodeId)
+            }
+            console.log(code)
+            $("#flowchart").append(code)
+            // mermaid.init(undefined, document.querySelector("#flowchart"))
+            mermaid.render('theGraph', code, function(svgCode) {
+                $("#flowchart").html(svgCode)
+            })
+            mermaid.render()
+        }
+
         $("#codeForm").on('submit', function(e) {
             e.preventDefault();
             $.ajax({
@@ -37,8 +91,11 @@
                     'usercode' : $("#code").val()
                 },
                 success: function(data) {
-                    console.log(data);
-                    $("textarea#result").val(data);
+                    code = data.code;
+                    states = data.states;
+                    console.log(states);
+                    $("textarea#result").val(code);
+                    displayGraph(states, data.strToIndex, data.instrMap, data.functionMap)
                 }
             });
         });

@@ -104,14 +104,17 @@ function get_name (op) {
     return lookup(OPCODES)
 }
 
-var output = "";
-
+let output = ""
+let instrJSON = {}
+let instrArr = []
+let pcToArrId = new Map()
 // pretty-print the program
 function print_program (P) {
     let i = 0
     while (i < array_length(P)) {
         let s = stringify(i)
         const op = P[i]
+        const PC = i
         s = s + ': ' + get_name(P[i])
         i = i + 1
         if (
@@ -134,6 +137,9 @@ function print_program (P) {
         } else {
         }
         console.log(s)
+        instrJSON[PC] = s
+        instrArr.push(s)
+        pcToArrId.set(PC, instrArr.length - 1)
         output += s + "\n";
     }
 }
@@ -796,6 +802,13 @@ let P = []
 
 let initialState = [0, [], new Map(), new Map(), '', '0', 0]
 
+let functionJSON = {}
+
+let functionCalls = {}
+
+let functions = []
+
+
 // Transition from one state to array of new states
 function transition (state) {
     // PC is program counter: index of the next instruction
@@ -984,6 +997,12 @@ function transition (state) {
         // Get closure
         const closure = OS.pop()
         const new_pc = closure[1]
+        const fnName = functionJSON[new_pc]
+        console.log(fnName)
+        console.log(params)
+        console.log(functionCalls)
+        console.log(functionCalls[fnName])
+        
         const func_env_addr = closure[2]
         const num_to_extend = closure[3]
 
@@ -1009,7 +1028,11 @@ function transition (state) {
             // Add parameters
             for (let i = 0; i < num_param; i++) {
                 let addr = new_env.get(original_size + i)
+                // let param = params.pop()
                 set_store(addr, params.pop())
+                // if (functionCalls[fnName] != undefined) {
+                //     functionCalls[fnName].push(param)
+                // }
             }
             // Transition to function
             PC = new_pc
@@ -1056,7 +1079,6 @@ function transition (state) {
     M[LD] = () => {
         const env_name = P[PC + 1]
         const store_addr = ENV.get(env_name)
-
         function cont (val, PC, OS) {
             OS.push(val)
             PC += 2
@@ -1118,15 +1140,57 @@ function cesk_run () {
         return JSON.stringify(copy)
     }
 
+    function get_functions() {
+
+        function countInstrs(fnPC, fnName) {
+            let startId = (pcToArrId.get(parseInt(fnPC)))
+            let endPC = 0
+            for (let i = 0; i > -1; i++) {
+                const instr = instrArr[startId + i]
+                const instrPC = instr.substring(0, instr.search(":"))
+                // functionJSON[instrPC] = fnName
+                // console.log(instr)
+                if ((instr.search("RTN")) > 0) {
+                    endPC = instr.substring(0, instr.search(":"))
+                    break;
+                }
+            }
+            functionJSON[endPC] = "END"
+            functionJSON[parseInt(fnPC)] = fnName
+        }
+
+        const instrSize = instrArr.length
+        for (let i = 4; i < instrSize; i++) {
+            if (instrArr[i].search("LDF") > 0) {
+                let pos = instrArr[i].search(/\d+\s\d+\s\d+/i)
+                let substr = instrArr[i].substring(pos)
+                pos = substr.search(" ")
+                substr = substr.substring(pos + 1)
+                pos = substr.search(" ")
+                const fnPC = substr.substring(0, pos + 1)
+                const fnName = instrArr[i + 1].substring(instrArr[i + 1].search(', "') + 3, instrArr[i + 1].search('"]'))
+                console.log("new function: ")
+                console.log("Name: " + fnName)
+                functionCalls[fnName] = []
+                functions.push(fnName)
+                countInstrs(fnPC, fnName)
+            }
+        }
+    }
+
+    print_program(P)
+
+    get_functions()
+
     let nextStates = [initialState] // Stack of states to DFS
 
     let nodes = [] // contains [state,children] of visited nodes
     let strToIndex = new Map() // Maps stringified state to index in nodes
-
+    let stringified_nodes = []
     while (nextStates.length > 0) {
         let cur = nextStates.pop()
         if (strToIndex.has(stringify_state(cur))) {
-            console.log('DUPE')
+            // console.log('DUPE')
             //display_STATE(cur)
             continue // If state has been visited
         }
@@ -1137,6 +1201,11 @@ function cesk_run () {
         console.log('CHIDREN: ' + children.length)
         // Add state to visited nodes
         nodes.push([cur, children])
+        let strNode = [JSON.parse(stringify_state(cur)), []]
+        for (let i = 0; i < children.length; i++) {
+            strNode[1].push(JSON.parse(stringify_state(children[i])))
+        }
+        stringified_nodes.push(strNode)
         strToIndex.set(stringify_state(cur), nodes.length - 1)
         // Add children to stack
         nextStates.push(...[...children].reverse()) // shallow copy, reverse and append
@@ -1147,7 +1216,13 @@ function cesk_run () {
         }
     }
     // response = {'code' : output, 'states' : nodes}
-    return nodes;
+    for (let i = 0; i < functions.length; i++ ) {
+        console.log(functions[i])
+        for (let j = 0; j < functionCalls[functions[i]].length; j++) {
+            console.log(functionCalls[functions[i]][j])
+        }
+    }
+    return {"code" : output, "states" : stringified_nodes, "strToIndex" : Array.from(strToIndex), "instrMap" : instrJSON, "functionMap" : functionJSON};
 }
 
 function write_STATE (state) {
