@@ -31,11 +31,27 @@
         <textarea rows = "10" cols = "100" id = "result" readonly>
             Result will appear here
         </textarea>
+        <div id = "functionCalls">
+            Function Calls:
+        </div>
         <div id = "flowchart">
             Flowchart Appears here
         </div>
     </body>
     <script>
+
+        function displayFunctionCalls(functions, functionCalls) {
+            console.log(functions)
+            var fnCalls = ""
+            for (let i = 0; i < functions.length; i++) {
+                fnCalls += functions[i] + ":<br/>"
+                for (let j = 0; j < functionCalls[functions[i]].length; j++) {
+                    fnCalls += functions[i] + "(" + functionCalls[functions[i]][j] + ")<br/>"
+                }
+            }
+            console.log(fnCalls)
+            $("#functionCalls").html(fnCalls)
+        }
 
         function displayGraph(states, stateIdMap, instrMap, functionMap) {
             let subgraphID = 0
@@ -71,9 +87,9 @@
                         ended -= 1
                     }
                 }
-                console.log(nodeId)
+                // console.log(nodeId)
             }
-            console.log(code)
+            // console.log(code)
             $("#flowchart").append(code)
             // mermaid.init(undefined, document.querySelector("#flowchart"))
             mermaid.render('theGraph', code, function(svgCode) {
@@ -95,6 +111,7 @@
                     states = data.states;
                     console.log(states);
                     $("textarea#result").val(code);
+                    displayFunctionCalls(data.functions, data.functionCalls)
                     displayGraph(states, data.strToIndex, data.instrMap, data.functionMap)
                 }
             });

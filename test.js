@@ -1000,9 +1000,9 @@ function transition (state) {
         const fnName = functionJSON[new_pc]
         console.log(fnName)
         console.log(params)
-        console.log(functionCalls)
-        console.log(functionCalls[fnName])
-        
+        if (functionCalls[fnName] != undefined) {
+            functionCalls[fnName].push(JSON.parse(JSON.stringify(params)))
+        }
         const func_env_addr = closure[2]
         const num_to_extend = closure[3]
 
@@ -1028,11 +1028,9 @@ function transition (state) {
             // Add parameters
             for (let i = 0; i < num_param; i++) {
                 let addr = new_env.get(original_size + i)
-                // let param = params.pop()
-                set_store(addr, params.pop())
-                // if (functionCalls[fnName] != undefined) {
-                //     functionCalls[fnName].push(param)
-                // }
+                let param = params.pop()
+                set_store(addr, param)
+                
             }
             // Transition to function
             PC = new_pc
@@ -1196,9 +1194,9 @@ function cesk_run () {
         }
         // Transition current state
         // write_STATE(cur)
-        display_STATE(cur);
+        // display_STATE(cur);
         let children = transition(cur)
-        console.log('CHIDREN: ' + children.length)
+        // console.log('CHIDREN: ' + children.length)
         // Add state to visited nodes
         nodes.push([cur, children])
         let strNode = [JSON.parse(stringify_state(cur)), []]
@@ -1216,13 +1214,14 @@ function cesk_run () {
         }
     }
     // response = {'code' : output, 'states' : nodes}
-    for (let i = 0; i < functions.length; i++ ) {
-        console.log(functions[i])
-        for (let j = 0; j < functionCalls[functions[i]].length; j++) {
-            console.log(functionCalls[functions[i]][j])
-        }
-    }
-    return {"code" : output, "states" : stringified_nodes, "strToIndex" : Array.from(strToIndex), "instrMap" : instrJSON, "functionMap" : functionJSON};
+    // for (let i = 0; i < functions.length; i++ ) {
+    //     console.log(functions[i])
+    //     for (let j = 0; j < functionCalls[functions[i]].length; j++) {
+    //         console.log(functionCalls[functions[i]][j])
+    //         console.log("---")
+    //     }
+    // }
+    return {"code" : output, "states" : stringified_nodes, "strToIndex" : Array.from(strToIndex), "instrMap" : instrJSON, "functions" : functions, "functionMap" : functionJSON, "functionCalls" : functionCalls};
 }
 
 function write_STATE (state) {
