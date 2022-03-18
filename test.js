@@ -988,7 +988,14 @@ function transition (state) {
         const kont_env_addr = kont_addr + '.env'
         const kont_os_addr = kont_addr + '.os'
         const kont_os = OS
-        const kont = [PC + 1, kont_os_addr, kont_env_addr, KONT, TIME, counter]
+        const kont = [
+            PC + 1,
+            kont_os_addr,
+            kont_env_addr,
+            KONT,
+            TIME,
+            counter + num_to_extend
+        ]
         set_store(kont_env_addr, kont_env)
         set_store(kont_os_addr, kont_os)
         set_store(kont_addr, kont)
@@ -1004,7 +1011,7 @@ function transition (state) {
             // Add parameters
             for (let i = 0; i < num_param; i++) {
                 let addr = new_env.get(original_size + i)
-                set_store(addr, params.pop())
+                set_store(addr, params[params.length - 1 - i])
             }
             // Transition to function
             PC = new_pc
@@ -1194,20 +1201,11 @@ function display_STATE (state) {
 }
 
 P = parse_and_compile(`
-    function f(x) {
-        function g(){
-            return x;
-        }
-        return g;
+    function f(x,y) {
+        return 2*x+y;
     }
-    f(7)();
-    f(8)();
-`)
-P = parse_and_compile(`
-    function f(x) {
-        return f(x+1);
-    }
-    f(1);
+    f(2,3);
+    f(4,1);
 `)
 
 // P = parse_and_compile(`
