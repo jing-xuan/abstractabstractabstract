@@ -1,11 +1,8 @@
 /* 
 
-Virtual machine for language Source §1-
+Abstract interpreter machine for subset of source
 
-using virtual machine SVML1, Lecture Week 5 of CS4215
-
-Instructions: press "Run" to evaluate an example expression
-              (scroll down and un-comment one example)
+Instructions: press "Run" to evaluate an example expression on full JavaScript mode
               
 The language Source §1- is defined as follows:
 
@@ -23,7 +20,7 @@ expr    ::= number
          |  unop expr
          |  expr ( expr (, expr)* )
          |  ( params ) => { stmt } ;
-binop   ::= + | - | * | / | < | > | <= | >= | === | !==
+binop   ::= + | - | * | / | < | > | <= | >= | === 
 unop    ::= !              
 params  ::= ε | name ( , name ) . . .
 */
@@ -957,7 +954,7 @@ function transition (state) {
     M[LDF] = () => {
         const fun_addr = P[PC + 2]
         const num_to_extend = P[PC + 3]
-        const env_addr = fun_addr + '.env'
+        const env_addr = TIME + "." + fun_addr + '.env'
         set_store(env_addr, Array.from(ENV))
         const closure = ['CLOSURE']
         closure[1] = fun_addr
@@ -1014,6 +1011,9 @@ function transition (state) {
                 set_store(addr, params[params.length - 1 - i])
             }
             // Transition to function
+            if (TIME.split('.').length < MAX_TIME) {
+                TIME = TIME + '.' + PC
+            }
             PC = new_pc
             OS = []
             ENV = new_env
