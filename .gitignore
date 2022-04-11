@@ -1,1 +1,10 @@
 node_modules
+.gitignore
+docs/refs.bib
+docs/report.aux
+docs/report.bbl
+docs/report.blg
+docs/report.fdb_latexmk
+docs/report.fls
+docs/report.log
+docs/report.synctex.gz
