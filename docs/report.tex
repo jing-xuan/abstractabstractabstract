@@ -33,6 +33,15 @@ A key difficulty is that a virtual machine executing a program might require an 
 For example, if the concrete machine transitions from state $A$ to state $B$, then the abstract machine must transition from some abstract state $A^{\prime}$ to some abstract state $B^{\prime}$, where $A^{\prime}$ and $B^{\prime}$ are the abstract states representing $A$ and $B$. If the abstract machine always terminates, then so must the concrete machine.
 
 We applied this approach to convert the Source virtual machine into an abstract interpreter which supports higher-order functions and conditionals. The interpreter provably terminates, returning a graph of abstract states reached that can be visualised by the user and potentially used to derive complier optimisations.
+
+\section{Implementation}
+Our abstract interpreter runs on the Source virtual machine code produced by the Source complier. We derived it from the original Source virtual machine by applying the technique of abstracting abstract machines \cite{aam}. Each state of our abstract interpreter is of the form:
+$$(PC,OS,ENV,STORE,KONT,TIME,C)$$
+
+Similar to the original Source virtual machine, $PC$ is a number representing the program counter and $OS$ is the operand stack itself, storing integers, booleans and closures. $ENV$ maps the names of function parameters and local variables to addresses. Note that these names in practice are actually integers. $STORE$ maps addresses to values. $KONT$ is the address of the continuation. A continuation is similar to a stack frame and it stores the previous $PC,OS,ENV,KONT,TIME$ and $C$. $TIME$ is a string representing the current call stack. It is the concatenation of the locations of the $CALL$ instructions in the call stack and is used to allocate new addresses. $C$ is an incrementing counter that is used alongside $TIME$ to allocate new addresses.
+
+
+
 \bibliography{refs}
 \bibliographystyle{plain} % We choose the "plain" reference style
 
