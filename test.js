@@ -1222,12 +1222,13 @@ function f(x, y) {
     xyz();
 `)
 
-// P = parse_and_compile(`
-//     function f(x) {
-//         return x===1 ? 1 :f(x-1);
-//     }
-//     f(3);
-// `)
+
+P = parse_and_compile(`
+    function f(x) {
+        return x===1 ? 1 :f(x-1);
+    }
+    f(3);
+`)
 
 const MAX_NUM = 10
 const MIN_NUM = -10
