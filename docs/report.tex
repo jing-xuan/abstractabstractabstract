@@ -1,5 +1,7 @@
 \documentclass[12pt]{article}
 \usepackage[utf8]{inputenc}
+\usepackage{mathpartir}
+
 \begin{filecontents}{refs.bib}
 @inproceedings{aam,
   title={Abstracting abstract machines},
@@ -35,10 +37,39 @@ For example, if the concrete machine transitions from state $A$ to state $B$, th
 We applied this approach to convert the Source virtual machine into an abstract interpreter which supports higher-order functions and conditionals. The interpreter provably terminates, returning a graph of abstract states reached that can be visualised by the user and potentially used to derive complier optimisations.
 
 \section{Implementation}
+\subsection{Overview}
 Our abstract interpreter runs on the Source virtual machine code produced by the Source complier. We derived it from the original Source virtual machine by applying the technique of abstracting abstract machines \cite{aam}. Each state of our abstract interpreter is of the form:
 $$(PC,OS,ENV,STORE,KONT,TIME,C)$$
 
 Similar to the original Source virtual machine, $PC$ is a number representing the program counter and $OS$ is the operand stack itself, storing integers, booleans and closures. $ENV$ maps the names of function parameters and local variables to addresses. Note that these names in practice are actually integers. $STORE$ maps addresses to values. $KONT$ is the address of the continuation. A continuation is similar to a stack frame and it stores the previous $PC,OS,ENV,KONT,TIME$ and $C$. $TIME$ is a string representing the current call stack. It is the concatenation of the locations of the $CALL$ instructions in the call stack and is used to allocate new addresses. $C$ is an incrementing counter that is used alongside $TIME$ to allocate new addresses.
+
+\subsection{Store}
+Importantly, the $STORE$ maps each address (a string) to a set of values. When the store is dereferenced, the interpreter non-deterministically chooses a value from the set of possible values, and transitions to the corresponding new state. When generating the state graph, all such possible transitions are explored.
+
+To illustrate, here are the rules for the load and assignment instructions:
+
+$$\infer{s(PC) = LD\ name}{
+    (PC,OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
+    (PC+1,v.OS,ENV,STORE,KONT,TIME,C)}$$
+where $v \in STORE(ENV(name))$
+
+$$\infer{s(PC) = ASSIGN\ name}{
+  (PC,v.OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
+  (PC+1,OS,ENV,STORE[ENV(name) \leftarrow v],KONT,TIME,C)}$$
+where $STORE[addr \leftarrow v]$ denotes adding the value $v$ to the set of values at the address $addr$ in the $STORE$
+
+\subsection{Function calls}
+The $LDF$ instruction pushes a closure on the operand stack. It receives the function address and the number of slots the environment needs to be extended by (number of parameters and local variables) as input.
+
+$$\infer{s(PC) = LDF\ \ funcAddr\ \ n}{
+    (PC,OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
+    (PC+1,closure.OS,ENV,STORE',KONT,TIME,C)}$$
+where
+$$envAddr=TIME.funcAddr.``env''$$
+$$STORE'=STORE[envAddr \leftarrow ENV]$$
+$$closure=(funcAddr,envAddr,n)$$
+
+Note that the environmnt address is the $TIME$ concatenated with the function address concatenated with the string constant $``env''$. The use of the function address and string constant ensures that the set of values stored at this address are all environnments compatible with this function.
 
 
 
