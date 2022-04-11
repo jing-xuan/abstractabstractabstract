@@ -1200,39 +1200,39 @@ function display_STATE (state) {
     console.log('----------------------------------')
 }
 
-P = parse_and_compile(`
-    function f(x) {
-        function g(){
-            return x;
-        }
-        return g;
-    }
-    f(7)();
-    f(8)();
-`)
-P = parse_and_compile(`
-function f(x, y) {
-    return x + y;
-    }
-    function xyz() {
-    return 2;
-    }
-    f(3, 4);
-    f(3,4);
-    xyz();
-`)
+// P = parse_and_compile(`
+//     function f(x) {
+//         function g(){
+//             return x;
+//         }
+//         return g;
+//     }
+//     f(7)();
+//     f(8)();
+// `)
+// P = parse_and_compile(`
+// function f(x, y) {
+//     return x + y;
+//     }
+//     function xyz() {
+//     return 2;
+//     }
+//     f(3, 4);
+//     f(3,4);
+//     xyz();
+// `)
 
 
-P = parse_and_compile(`
-    function f(x) {
-        return x===1 ? 1 :f(x-1);
-    }
-    f(3);
-`)
+// P = parse_and_compile(`
+//     function f(x) {
+//         return x===1 ? 1 :f(x-1);
+//     }
+//     f(3);
+// `)
 
 const MAX_NUM = 10
 const MIN_NUM = -10
 let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = -1 // Number of iterations to run
-cesk_run()
-print_program(P)
+// cesk_run()
+// print_program(P)
