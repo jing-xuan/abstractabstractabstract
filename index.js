@@ -53,8 +53,8 @@ async function test_source (usercode) {
   var base_code = await fs.readFile('test.js', 'utf-8')
   var test_code = base_code.trim()
   test_code += "\nP = parse_and_compile('" + usercode + "')\n"
-  test_code += "cesk_run()\n"
   test_code += "print_program(P)\n"
+  test_code += "cesk_run()\n"
   var test_output = await test(DEFAULT_CHAPTER, DEFAULT_VARIANT, test_code)
   return test_output;
 }

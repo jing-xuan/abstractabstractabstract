@@ -103,6 +103,7 @@ function get_name (op) {
 }
 
 // pretty-print the program
+var machineCode = "";
 function print_program (P) {
     let i = 0
     while (i < array_length(P)) {
@@ -130,6 +131,7 @@ function print_program (P) {
         } else {
         }
         console.log(s)
+        machineCode += s + "<br/>";
     }
 }
 
@@ -1120,17 +1122,19 @@ function cesk_run () {
     let nextStates = [initialState] // Stack of states to DFS
 
     let nodes = [] // contains [state,children] of visited nodes
+    let feStates = [];
     let strToIndex = new Map() // Maps stringified state to index in nodes
 
     while (nextStates.length > 0) {
         let cur = nextStates.pop()
         if (strToIndex.has(stringify_state(cur))) {
             console.log('DUPE')
-            //display_STATE(cur)
+            // display_STATE(cur)
             continue // If state has been visited
         }
         // Transition current state
         display_STATE(cur)
+        feStates.push(fe_STATE(cur))
         let children = transition(cur)
         console.log('CHIDREN: ' + children.length)
         // Add state to visited nodes
@@ -1144,6 +1148,85 @@ function cesk_run () {
             break
         }
     }
+    return {"machineCode": machineCode, "states": feStates};
+}
+
+function fe_STATE (state) {
+    function display_PC (pc) {
+        const op = P[pc]
+        let s = get_name(P[pc])
+        if (
+            op === LDCN ||
+            op === LDCB ||
+            op === GOTO ||
+            op === JOF ||
+            op === ASSIGN ||
+            op === LDF ||
+            op === LD ||
+            op === CALL
+        ) {
+            s = s + ' ' + stringify(P[pc + 1])
+        } else if (op === LDF) {
+            s = s + ' ' + stringify(P[pc + 1]) + ' ' + stringify(P[pc + 2])
+        }
+        return s
+    }
+
+    function stringifyOS (OS) {
+        var str = "";
+        for (const o of OS) {
+            str += o + ", ";
+        }
+        if (str == "") {
+            return "-"
+        }
+        return str;
+    }
+
+    function display_ENV (env) {
+        var str = "";
+        function log_map (v, k, m) {
+            str += k + " -> " + v + "<br/>";
+
+            // console.log(k + '->' + v)
+        }
+        // console.log('ENV: ')
+        env.forEach(log_map)
+        // console.log('')
+        if (str == "") {
+            return "-";
+        }
+        return str;
+    }
+
+    function display_STORE (store) {
+        var str = "";
+        function log_map (v, k, m) {
+            function stringify_entry (arr) {
+                return arr.map(JSON.stringify).join(' || ')
+            }
+            str += k + " -> " + stringify_entry(v) + "<br/>"
+            // console.log(k + '-> ' + stringify_entry(v))
+        }
+        // console.log('STORE:')
+        store.forEach(log_map)
+        // console.log('')
+        if (str == "") {
+            return "-";
+        }
+        return str;
+    }
+
+    let [PC, OS, ENV, STORE, KONT, TIME, counter] = state
+    var states = {};
+    states["instr"] = PC + ": " + display_PC(PC);
+    states["OS"] = stringifyOS(OS);
+    states["KONT"] = KONT === "" ? "-" : KONT;
+    states["ENV"] = display_ENV(ENV);
+    states["STORE"] = display_STORE(STORE);
+    // states["STORE"] = "";
+    return states;
+
 }
 
 function display_STATE (state) {

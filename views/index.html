@@ -1,1 +1,286 @@
-hello world
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>AbstractAbstractAbstract</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Grape+Nuts&display=swap" rel="stylesheet"> 
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <style>
+            body {
+                margin: 0;
+                /* background-color: #34495e; */
+                background-color: white;
+            }
+            #top_banner {
+                margin: 0;
+                padding: 10px 20px;
+                background-color: #1b2631;
+                color: white;
+                font-family: 'Grape Nuts', cursive;
+                font-size: 40px;
+                box-shadow: 0 5px 10px #333;
+            }
+            #centre {
+                display: flex;
+                width: 100%;
+                height: 90vh;
+            }
+
+            #codeformdiv {
+                width: 35%;
+                height: 100%;
+                padding-top: 50px;
+                padding-left: 20px;
+                border-right-style: solid;
+                border-right-width: 1px; 
+                border-right-color: #ccc;
+                font-family: 'Courier New', Courier, monospace;
+                /* background-color: lightgray; */
+            }
+
+            #codeform {
+                width: 100%;
+                height: 50%;
+                /* background-color: aquamarine; */
+                /* padding-left: 20px; */
+                /* padding-top: 20px; */
+            }
+
+            #code {
+                width: 90%;
+                height: 80%;
+                /* background-color: lightgr; */
+                border: none;
+                margin-top: 20px;
+                /* color: white; */
+                font-size: 15px;
+                resize: none;
+                outline: none;
+                font-family: 'Courier New', Courier, monospace;
+            }
+
+            #submitbtn {
+                width: 90%;
+                font-size: 15px;
+                background-color: #1b2631;
+                /* border: solid 2px #888; */
+                border: none;
+                border-radius: 5px;
+                box-shadow: 0 3px 3px #333;
+                padding: 8px 50px;
+                color: white;
+            }
+
+            #output {
+                width: 60%;
+                padding-left: 50px;
+                padding-top: 30px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-around;
+            }
+
+            #machineCode {
+                font-family:'Courier New', Courier, monospace;
+                width: 25%;
+                /* color: white; */
+            }
+            .stateDiv {
+                width: 80%;
+                height: 50%;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            h2 {
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 25px;
+                background-color: #1b2631;
+                color: white;
+                padding: 10px;
+                border-radius: 8px;
+            }
+            th {
+                padding-right: 10px;
+            }
+            #prevBtn {
+                width: 30%;
+                margin-left: 35%;
+                color: white;
+                background-color: #7e848a;
+                border: none;
+                border-radius: 5px;
+                font-size: 20px;
+                padding: 2px 10px;
+            }
+            #nextBtn {
+                width: 30%;
+                margin-left: 35%;
+                color: white;
+                background-color: #1b2631;
+                border: none;
+                border-radius: 5px;
+                font-size: 20px;
+                padding: 2px 10px;
+            }
+            table {
+                height: 80%;
+                margin-bottom: 50px;
+            }
+            #buttons {
+                display: flex;
+                width: 50%;
+            }
+            th {
+                vertical-align: text-top;
+            }
+        </style>
+    </head>
+    <body>
+        <div id = "top_banner">
+            <span style = "color: white">Abstract</span><span style = "color: silver">Abstract</span><span style = "color: gray">Abstract</span>
+        </div>
+        <div id = "centre">
+            <div id = "codeformdiv">
+                // Your code here:
+                <form method = "get" id = "codeform">
+                    <textarea rows = "50" cols = "100" name = "code" id = "code" >1 + 1;</textarea>
+                    <input type = "submit" value = "Compile and Run &#x27A4;" id = "submitbtn"/>
+                </form>
+                <div id = "machineCode">
+                    Machine Code:
+                </div>          
+            </div>
+            <div id = "output">
+                
+                <div class = "stateDiv" id = "curState">
+                    <div>
+                    <h2>Current State</h2>
+                    <table>
+                        <tr>
+                            <th>PC</th>
+                            <td id = "curStatePC"></td>
+                        </tr>
+                        <tr>
+                            <th>OS</th>
+                            <td id = "curStateOS"></td>
+                        </tr>
+                        <tr>
+                            <th>KONT</th>
+                            <td id = "curStateKONT"></td>
+                        </tr>
+                        <tr>
+                            <th>ENV</th>
+                            <td id = "curStateENV"></td>
+                        </tr>
+                        <tr>
+                            <th>STORE</th>
+                            <td id = "curStateSTORE"></td>
+                        </tr>
+                    </table>
+                    </div>
+                </div>
+                <div id = "buttons">
+
+                    <button id = "prevBtn">
+                        &#5130;
+                    </button>
+                    <button id = "nextBtn">
+                        &#5125;
+                    </button>
+                </div>
+                <div class = "stateDiv" id = "nextState">
+                    <div>
+                    <h2>Next State</h2>
+                    <table>
+                        <tr>
+                            <th>PC</th>
+                            <td id = "nextStatePC"></td>
+                        </tr>
+                        <tr>
+                            <th>OS</th>
+                            <td id = "nextStateOS"></td>
+                        </tr>
+                        <tr>
+                            <th>KONT</th>
+                            <td id = "nextStateKONT"></td>
+                        </tr>
+                        <tr>
+                            <th>ENV</th>
+                            <td id = "nextStateENV"></td>
+                        </tr>
+                        <tr>
+                            <th>STORE</th>
+                            <td id = "nextStateSTORE"></td>
+                        </tr>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    <script>
+        var states = [];
+        var state1 = 0;
+        var state2 = 1;
+
+        function displayState(eleName, stateId) {
+            $("#" + eleName + "PC").html(states[stateId]["instr"] );
+            $("#" + eleName + "OS").html(states[stateId]["OS"]);
+            $("#" + eleName + "KONT").html(states[stateId]["KONT"]);
+            $("#" + eleName + "ENV").html(states[stateId]["ENV"]);
+            $("#" + eleName + "STORE").html(states[stateId]["STORE"]);
+        }
+
+        $("#nextBtn").click(function() {
+            if (state2 < states.length - 1) {
+                state1 += 1;
+                state2 += 1;
+            } 
+            if (state2 == states.length - 1) {
+                $("#nextBtn").css('background-color', '#7e848a');
+            }
+            $("#prevBtn").css('background-color', '#1b2631');
+            displayStates();
+        });
+
+        $("#prevBtn").click(function() {
+            if (state1 > 0) {
+                state1 -= 1;
+                state2 -= 1;
+            }
+            if (state1 == 0) {
+                $("#prevBtn").css('background-color', '#7e848a');
+            }
+            $("#nextBtn").css('background-color', '#1b2631');
+            displayStates();
+        });
+
+        function displayStates() {
+            // console.log(states[state1]["instr"]);   
+            displayState("curState", state1);
+            displayState("nextState", state2);
+            // $("#nextState").append(states[state2]["instr"]);
+        }
+        
+        $("#codeform").on('submit', function(e) {
+            e.preventDefault(); 
+            $.ajax({
+                url: "/runcode",
+                type: "get",
+                data: {
+                    'usercode' : $("#code").val()
+                },
+                success: function(data) {
+                    state1 = 0;
+                    state2 = 1;
+                    console.log(data);
+                    $("#machineCode").html("Machine Code: <br/><br/>" + data.machineCode);
+                    $("textarea#result").val(data);
+                    states = data.states;
+                    displayStates();
+                }
+            });
+        });
+    </script>
+</html>
