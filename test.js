@@ -1230,6 +1230,24 @@ P = parse_and_compile(`
     f(3);
 `)
 
+P = parse_and_compile(`
+    const z = 3;
+    function f(x) {
+        return (y) => x + y;
+    }
+    f(1)(50);
+
+    f(2)(52);
+`)
+// P = parse_and_compile(`
+//     const z = 3;
+//     const y = 4;
+//     function f(x) {
+//         return x + z + y;
+//     }
+//     f(1);
+// `)
+
 const MAX_NUM = 10
 const MIN_NUM = -10
 let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
