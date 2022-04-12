@@ -959,7 +959,7 @@ function transition (state) {
     M[LDF] = () => {
         const fun_addr = P[PC + 2]
         const num_to_extend = P[PC + 3]
-        const env_addr = fun_addr + '.env'
+        const env_addr = TIME + "." + fun_addr + '.env'
         set_store(env_addr, Array.from(ENV))
         const closure = ['CLOSURE']
         closure[1] = fun_addr
@@ -1016,13 +1016,13 @@ function transition (state) {
                 set_store(addr, params[params.length - 1 - i])
             }
             // Transition to function
+            if (TIME.split('.').length < MAX_TIME) {
+                TIME = TIME + '.' + PC
+            }
             PC = new_pc
             OS = []
             ENV = new_env
             KONT = kont_addr
-            if (TIME.split('.').length < MAX_TIME) {
-                TIME = TIME + '.' + PC
-            }
             counter = 0
             next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
         }
@@ -1240,6 +1240,7 @@ function fe_STATE (state) {
     var states = {};
     states["instr"] = PC + ": " + display_PC(PC);
     states["OS"] = stringifyOS(OS);
+    states["TIME"] = TIME;
     states["KONT"] = KONT === "" ? "-" : KONT;
     states["ENV"] = display_ENV(ENV);
     states["STORE"] = display_STORE(STORE);
@@ -1334,7 +1335,7 @@ function display_STATE (state) {
 
 const MAX_NUM = 10
 const MIN_NUM = -10
-let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
+let MAX_TIME = 5 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = -1 // Number of iterations to run
 // cesk_run()
 // print_program(P)
