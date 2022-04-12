@@ -1018,9 +1018,6 @@ function transition (state) {
             OS = []
             ENV = new_env
             KONT = kont_addr
-            if (TIME.split('.').length < MAX_TIME) {
-                TIME = TIME + '.' + PC
-            }
             counter = 0
             next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
         }
@@ -1201,11 +1198,11 @@ function display_STATE (state) {
 }
 
 P = parse_and_compile(`
-    function f(x,y) {
-        return 2*x+y;
+    function f(x) {
+        return ()=>x;
     }
-    f(2,3);
-    f(4,1);
+    f(2);
+    f(3);
 `)
 
 // P = parse_and_compile(`
@@ -1217,7 +1214,7 @@ P = parse_and_compile(`
 
 const MAX_NUM = 10
 const MIN_NUM = -10
-let MAX_TIME = 2 // Maximum length of TIME, will be truncated if exceeding
+let MAX_TIME = 5 // Maximum length of TIME, will be truncated if exceeding
 let MAX_COUNT = -1 // Number of iterations to run
 cesk_run()
 print_program(P)
