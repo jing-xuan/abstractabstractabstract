@@ -782,7 +782,10 @@ function copy_map (map) {
 }
 
 // CESK STARTS HERE
-
+let functionNames = [];
+let pcToFunctionNames = new Map();
+let functionCalls = new Map();
+let functionStarts = [];
 // "registers" are the global variables of our machine.
 // These contain primitive values (numbers or boolean
 // values) or arrays of primitive values
@@ -984,6 +987,16 @@ function transition (state) {
         const func_env_addr = closure[2]
         const num_to_extend = closure[3]
 
+
+        // for tracking
+        if (new_pc != 8) {
+            const fnName = pcToFunctionNames.get(new_pc)
+            console.log("Called " + fnName + " with params ")
+            console.log(params);
+            functionStarts.push([fnName, params])
+        }
+
+
         // Save current state
         const kont_env = Array.from(ENV)
         const kont_addr = TIME + '.' + PC + '.kont'
@@ -1038,8 +1051,22 @@ function transition (state) {
 
     M[RTN] = () => {
         const top_val = OS.pop()
+        // console.log("returned " + top_val)
         const kont_addr = KONT
-
+        
+        // for tracking
+        if (functionStarts.length > 0) {
+            const callingFn = functionStarts.pop();
+            console.log("called function " + callingFn[0] + "with params" +
+            callingFn[1] + " returned " + top_val);
+            if (!(functionCalls.has(callingFn[0]))) {
+                functionCalls.set(callingFn[0], [[callingFn[1], top_val]])
+            } else {
+                var calls = functionCalls.get(callingFn[0]);
+                calls.push([callingFn[1], top_val]);
+                functionCalls.set(callingFn[0], calls);
+            }
+        }
         for (let kont of load_store(kont_addr)) {
             const kont_os_addr = kont[1]
             const kont_env_addr = kont[2]
@@ -1074,12 +1101,25 @@ function transition (state) {
 
     M[ASSIGN] = () => {
         const val = OS.pop()
+        // tracking purposes
         const env_name = P[PC + 1][0]
         const string_name = P[PC + 1][1]
         const store_addr = ENV.get(env_name)
         set_store(store_addr, val)
         PC += 2
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
+        if (Array.isArray(val)) {
+                console.log("assigned a function to " + string_name)
+                functionNames.push(string_name);
+                pcToFunctionNames.set(val[1], string_name);
+            // functions.push
+        } else {
+            if (val == "true" || val == false) {
+                console.log("assigned a boolean to " + string_name)
+            } else {
+                console.log("assigned a number to " + string_name);
+            }
+        }
     }
 
     M[JOF] = () => {
@@ -1133,7 +1173,7 @@ function cesk_run () {
             continue // If state has been visited
         }
         // Transition current state
-        display_STATE(cur)
+        // display_STATE(cur)
         feStates.push(fe_STATE(cur))
         let children = transition(cur)
         console.log('CHIDREN: ' + children.length)
@@ -1167,7 +1207,13 @@ function cesk_run () {
         }
     }
     nodesToGraph();
-    return {"machineCode": machineCode, "states": feStates, "parentToChild": Array.from(parentToChild), "childToParent": Array.from(childToParent)};
+    console.log("these are the function names")
+    console.log(functionNames)
+    console.log(Array.from(pcToFunctionNames));
+    console.log(Array.from(functionCalls));
+    console.log(functionStarts);
+    return {"machineCode": machineCode, "states": feStates, "parentToChild": Array.from(parentToChild), "childToParent": Array.from(childToParent),
+            "functionCalls": Array.from(functionCalls), "functionNames": functionNames, "unterminatedCalls": functionStarts};
 }
 
 function fe_STATE (state) {
@@ -1303,35 +1349,6 @@ function display_STATE (state) {
     console.log('----------------------------------')
 }
 
-// P = parse_and_compile(`
-//     function f(x) {
-//         function g(){
-//             return x;
-//         }
-//         return g;
-//     }
-//     f(7)();
-//     f(8)();
-// `)
-// P = parse_and_compile(`
-// function f(x, y) {
-//     return x + y;
-//     }
-//     function xyz() {
-//     return 2;
-//     }
-//     f(3, 4);
-//     f(3,4);
-//     xyz();
-// `)
-
-
-// P = parse_and_compile(`
-//     function f(x) {
-//         return x===1 ? 1 :f(x-1);
-//     }
-//     f(3);
-// `)
 
 const MAX_NUM = 10
 const MIN_NUM = -10

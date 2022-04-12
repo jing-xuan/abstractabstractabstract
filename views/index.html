@@ -79,7 +79,7 @@
                 padding-left: 50px;
                 padding-top: 30px;
             }
-            #output1 , #output2{
+            #output1 , #output2, #output3{
                 width: 100%;
                 height: 90%;
                 display: flex;
@@ -96,6 +96,11 @@
                 padding-top: 30px;
                 flex-direction: row;
                 justify-content: flex-start;
+            }
+
+            #output3 {
+                display: none;
+                flex-direction: column;
             }
 
             #flowchart {
@@ -134,8 +139,13 @@
                 background-color: #1b2631;
                 color: white;
                 padding: 10px;
+                width: 80%;
                 border-radius: 8px;
             }
+            #curStateHeader, #nextStateHeader{
+                width: 100%;
+            }
+
             th {
                 padding-right: 10px;
             }
@@ -174,7 +184,7 @@
                 font-size: 20px;
                 padding: 2px 10px;
             }
-            #graphBtn, #statesBtn {
+            #graphBtn, #statesBtn, #analysisBtn{
                 width: 10%;
                 color: white;
                 background-color: #1b2631;
@@ -194,8 +204,13 @@
                 height: 80%;
                 margin-bottom: 50px;
             }
+            #graphNode {
+                max-height: 80%;
+                overflow: scroll;
+            }
             #graphNodeTable {
-                /* height: 10%; */
+                /* max-height: 80%; */
+                /* overflow: scroll; */
                 margin-left: 20px;
                 font-family: 'Courier New', Courier, monospace;
             }
@@ -215,6 +230,19 @@
                 margin: 5px;
                 font-size: 15px;
                 display: none   ;
+            }
+            #functionDescriptions {
+                height: 80%;
+                width: 80%;
+                overflow: scroll;
+                padding-left: 30px;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            .fnCall {
+                margin: 5px 0px; 
+            }
+            .fnName {
+                margin-bottom: 3px;
             }
         </style>
     </head>
@@ -242,6 +270,15 @@
                     <button id = "graphBtn">
                         Graph
                     </button>
+                    <button id = "analysisBtn">
+                        Analysis
+                    </button>
+                </div>
+                <div id = "output3">
+                    <h2>Functions</h2>
+                    <div id = "functionDescriptions">
+                        Data here
+                    </div>
                 </div>
             <div id = "output2">
                 <!-- <h2 id = "graphBanner">Graph</h2> -->
@@ -370,6 +407,12 @@
         var state2 = 1;
         var parentToChild = new Map();
         var childToParent = new Map();
+        var timeToColour = new Map();
+        var colourNames = ['#f2d7d5', '#f4ecf7', '#e8f6f3', '#fef9e7', '#fdf2e9', '#fadbd8', '#d6eaf8', '#abebc6', '#edbb99', '#85c1e9'];
+        var colourId = 0;
+        var functionCalls = new Map();
+        var functionNames = [];
+        var unterminatedFunctions = [];
 
         function displayState(eleName, stateId) {
             // console.log(eleName, stateId)
@@ -392,11 +435,18 @@
         $("#statesBtn").click(function() {
             $("#output1").css("display", "flex");
             $("#output2").css("display", "none");
+            $("#output3").css("display", "none");
         })
         $("#graphBtn").click(function() {
             $("#output1").css("display", "none");
             $("#output2").css("display", "flex");
+            $("#output3").css("display", "none");
             displayGraph();
+        })
+        $("#analysisBtn").click(function() {
+            $("#output1").css("display", "none");
+            $("#output2").css("display", "none");
+            $("#output3").css("display", "flex");
         })
 
         $("#nextBtn").click(function() {
@@ -437,12 +487,51 @@
             displayState("graphState", id);
         }
         
+        function displayFunctions() {
+            var txt = "";
+            for (var i = 0; i < functionNames.length; i++) {
+                txt += "<h3 class = 'fnName'>function " + functionNames[i] + ":</h3>";
+                if (!functionCalls.has(functionNames[i])) {
+                    txt += "<p class = 'fnNotCalled'>Function was not called or did not terminate</p>";
+                } else {
+                    const calls = functionCalls.get(functionNames[i])
+                    for (var j = 0; j < calls.length; j++) {
+                        txt += "<p class = 'fnCall'>" + functionNames[i] + "(";
+                        for (var k = calls[j][0].length - 1; k >= 0 ; k--) {
+                            txt += calls[j][0][k];
+                            if (k > 0) {
+                                txt += ", ";
+                            }
+                        }
+                        txt += ") -> " + calls[j][1] + "</p>"
+                    }
+                }
+                // txt += "<br/><br/>"
+            }
+            if (unterminatedFunctions.length > 0) {
+                txt += "<h3 class = 'fnName' style = 'color:orangered;'>Unterminated Function Calls:</h3>";
+                for (var i = 0; i < unterminatedFunctions.length; i++) {
+                    txt += "<p class = '    '>" + unterminatedFunctions[i][0] + "(";
+                    for (var j = unterminatedFunctions[i][1].length - 1; j >= 0; j--) {
+                        txt += unterminatedFunctions[i][1][j];
+                        if (j > 0) {
+                            txt += ", ";
+                        }
+                    }
+                    txt += ")</p>"
+                }   
+            }
+            console.log(unterminatedFunctions)
+            $("#functionDescriptions").html(txt);
+        }
+
         function displayGraph() {
             var code = "flowchart TD;\n";
             for (var i = 0; i < states.length; i++) {
                 const instr = String(states[i]["instr"]).replace(/\[|\]|"/g, " ")
                 code += String(i) + "(" + instr + ")\n";
                 code += "click " + String(i) + " clickGraphNode\n";
+                code += "style " + String(i) + " fill:" + colourNames[timeToColour.get(states[i]["TIME"])] + ",stroke:#888\n"
                 if (parentToChild.has(i) && parentToChild.get(i).length > 0) {
                     children = parentToChild.get(i);
                     for (var j = 0; j < children.length; j++) {
@@ -498,20 +587,37 @@
                     'usercode' : $("#code").val()
                 },
                 success: function(data) {
-                    console.log(data.childToParent);
+                    console.log(data.functionCalls);
                     $("#codehere").html(data.machineCode);
                     $("textarea#result").val(data);
                     states = data.states;
+                    for (var i = 0; i < states.length; i++) {
+                        const t = states[i]["TIME"];
+                        // console.log(t)
+                        if (timeToColour.has(t)) {
+                            continue;
+                        } else {
+                            timeToColour.set(t, colourId);
+                            colourId = (colourId + 1) % 10;
+                        }
+                    }
                     for (var i = 0; i < data.parentToChild.length; i++) {
                         parentToChild.set(data.parentToChild[i][0], data.parentToChild[i][1]);
                     }
                     for (var i = 0; i < data.childToParent.length; i++) {
                         childToParent.set(data.childToParent[i][0], data.childToParent[i][1]);
                     }
-                    state1 = 0;
+                    for (var i = 0; i < data.functionCalls.length; i++) {
+                        functionCalls.set(data.functionCalls[i][0], data.functionCalls[i][1]);
+                    }
+                    functionNames = data.functionNames;
+                    unterminatedFunctions = data.unterminatedCalls;
+                    console.log(functionNames)
+                    state1 = 0; 
                     state2 = 1; // can only have one state at the beginning
                     displayStates();
                     displayGraph();
+                    displayFunctions();
                 }
             });
         });
