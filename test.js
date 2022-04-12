@@ -1148,7 +1148,26 @@ function cesk_run () {
             break
         }
     }
-    return {"machineCode": machineCode, "states": feStates};
+
+    let parentToChild = new Map();
+    let childToParent = new Map();
+    function nodesToGraph() {
+        for (var i = 0; i < nodes.length; i++) {
+            const parentId = strToIndex.get(stringify_state(nodes[i][0]));
+            let children = [];
+            // console.log("------------------------ ");
+            // console.log(strToIndex.get(stringify_state(nodes[i][0])));
+            // console.log("->: ");
+            for (var j = 0; j < nodes[i][1].length; j++) {
+                const childId = strToIndex.get(stringify_state(nodes[i][1][j]));
+                childToParent.set(childId, parentId);
+                children.push(childId);
+            }
+            parentToChild.set(parentId, children);
+        }
+    }
+    nodesToGraph();
+    return {"machineCode": machineCode, "states": feStates, "parentToChild": Array.from(parentToChild), "childToParent": Array.from(childToParent)};
 }
 
 function fe_STATE (state) {

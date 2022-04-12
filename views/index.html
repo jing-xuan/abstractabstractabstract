@@ -5,10 +5,10 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Grape+Nuts&display=swap" rel="stylesheet"> 
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+          <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
         <style>
             body {
+                overflow: hidden;
                 margin: 0;
                 /* background-color: #34495e; */
                 background-color: white;
@@ -32,7 +32,7 @@
                 width: 35%;
                 height: 100%;
                 padding-top: 50px;
-                padding-left: 20px;
+                padding-left: 30px;
                 border-right-style: solid;
                 border-right-width: 1px; 
                 border-right-color: #ccc;
@@ -42,7 +42,7 @@
 
             #codeform {
                 width: 100%;
-                height: 50%;
+                height: 45%;
                 /* background-color: aquamarine; */
                 /* padding-left: 20px; */
                 /* padding-top: 20px; */
@@ -73,19 +73,37 @@
                 color: white;
             }
 
-            #output {
+            #output1 , #output2{
                 width: 60%;
                 padding-left: 50px;
                 padding-top: 30px;
                 display: flex;
                 flex-direction: column;
+            }
+
+            #output1 {
+                display: none;
                 justify-content: space-around;
+            }
+
+            #output2 {
+                justify-content: flex-start;
+            }
+
+            #graphBanner {
+                width: 80%;
             }
 
             #machineCode {
                 font-family:'Courier New', Courier, monospace;
-                width: 25%;
+                width: 80%;
+                height: 40%;
+                /* overflow: scroll; */
                 /* color: white; */
+            }
+            #codehere {
+                height: 100%;
+                overflow: scroll;
             }
             .stateDiv {
                 width: 80%;
@@ -121,7 +139,27 @@
                 border: none;
                 border-radius: 5px;
                 font-size: 20px;
+                padding: 2px 10px;      
+            }
+            #chooseChildStateDiv {
+                /* display: flex; */
+                justify-content: center;
+                display: none;
+            }
+            #nextChildState, #prevChildState{
+                width: 10%;
+                margin: 0px 35px;
+                color: white;
+                background-color: #1b2631;
+                border: none;
+                border-radius: 5px;
+                font-size: 20px;
                 padding: 2px 10px;
+            }
+            #changeChildStateLabel {
+                margin: 0px;
+                padding-top: 5px;
+                text-align: center;
             }
             table {
                 height: 80%;
@@ -138,6 +176,12 @@
                 vertical-align: text-top;
                 text-align: right;
             }
+            #mulStateNoti{
+                color: orangered;
+                margin: 5px;
+                font-size: 15px;
+                display: none;
+            }
         </style>
     </head>
     <body>
@@ -152,14 +196,17 @@
                     <input type = "submit" value = "Compile and Run &#x27A4;" id = "submitbtn"/>
                 </form>
                 <div id = "machineCode">
-                    Machine Code:
+                    <p>Machine Code:</p>
+                    <p id = "codehere"></p>
                 </div>          
             </div>
-            <div id = "output">
-                
+            <div id = "output2">
+                <h2 id = "graphBanner">Graph</h2>
+            </div>
+            <div id = "output1">
                 <div class = "stateDiv" id = "curState">
                     <div>
-                    <h2>Current State</h2>
+                    <h2 id = "curStateHeader">Current State</h2>
                     <table>
                         <tr>
                             <th>PC</th>
@@ -182,6 +229,8 @@
                             <td id = "curStateSTORE"></td>
                         </tr>
                     </table>
+                    <h6 id = "mulStateNoti"><span style="font-size: 20px;font-weight: bold;">&#x26A0;</span>This state has multiple children</h6> 
+
                     </div>
                 </div>
                 <div id = "buttons">
@@ -194,7 +243,7 @@
                 </div>
                 <div class = "stateDiv" id = "nextState">
                     <div>
-                    <h2>Next State</h2>
+                    <h2 id = "nextStateHeader">Next State</h2>
                     <table>
                         <tr>
                             <th>PC</th>
@@ -217,6 +266,12 @@
                             <td id = "nextStateSTORE"></td>
                         </tr>
                     </table>
+                    <div id = "chooseChildStateDiv">
+                        <p id = "changeChildStateLabel">Change Child State</p>
+                        <button id = "nextChildState">
+                            &#5125;
+                        </button>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -226,6 +281,8 @@
         var states = [];
         var state1 = 0;
         var state2 = 1;
+        var parentToChild = new Map();
+        var childToParent = new Map();
 
         function displayState(eleName, stateId) {
             $("#" + eleName + "PC").html(states[stateId]["instr"] );
@@ -235,25 +292,42 @@
             $("#" + eleName + "STORE").html(states[stateId]["STORE"]);
         }
 
+        $("#nextChildState").click(function() {
+            const children = parentToChild.get(state1); 
+            var curChildId = children.indexOf(state2);
+            curChildId = (curChildId + 1) % children.length;
+            state2 = children[curChildId];
+            displayState("nextState", state2);
+        });
+
         $("#nextBtn").click(function() {
-            if (state2 < states.length - 1) {
-                state1 += 1;
-                state2 += 1;
+            if (parentToChild.has(state2) && parentToChild.get(state2).length > 0) {
+                const children = parentToChild.get(state2);
+                state1 = state2;
+                state2 = children[0];
+                if (children.length > 1) {
+                    console.log("MULTIPLE CHILDREN");
+                } 
+
+                if ((parentToChild.has(state2))) {
+                    if (parentToChild.get(state2).length == 0)
+                    $("#nextBtn").css('background-color', '#7e848a');
+                }
+                $("#prevBtn").css('background-color', '#1b2631');
+                displayStates();
             } 
-            if (state2 == states.length - 1) {
-                $("#nextBtn").css('background-color', '#7e848a');
-            }
-            $("#prevBtn").css('background-color', '#1b2631');
-            displayStates();
         });
 
         $("#prevBtn").click(function() {
             if (state1 > 0) {
-                state1 -= 1;
-                state2 -= 1;
+                const parent = childToParent.get(state1);
+                state2 = state1;
+                state1 = parent;
             }
-            if (state1 == 0) {
+            if (!childToParent.has(state1)) {
                 $("#prevBtn").css('background-color', '#7e848a');
+            } else {
+                $("#prevBtn").css('background-color', '#1b2631');
             }
             $("#nextBtn").css('background-color', '#1b2631');
             displayStates();
@@ -263,6 +337,13 @@
             // console.log(states[state1]["instr"]);   
             displayState("curState", state1);
             displayState("nextState", state2);
+            if (parentToChild.get(state1).length > 1) {
+                $("#mulStateNoti").show();
+                $("#chooseChildStateDiv").css("display", "flex");
+            } else {
+                $("#mulStateNoti").hide()
+                $("#chooseChildStateDiv").css("display", "none");
+            }
             // $("#nextState").append(states[state2]["instr"]);
         }
         
@@ -275,12 +356,18 @@
                     'usercode' : $("#code").val()
                 },
                 success: function(data) {
-                    state1 = 0;
-                    state2 = 1;
-                    console.log(data);
-                    $("#machineCode").html("Machine Code: <br/><br/>" + data.machineCode);
+                    console.log(data.childToParent);
+                    $("#codehere").html(data.machineCode);
                     $("textarea#result").val(data);
                     states = data.states;
+                    for (var i = 0; i < data.parentToChild.length; i++) {
+                        parentToChild.set(data.parentToChild[i][0], data.parentToChild[i][1]);
+                    }
+                    for (var i = 0; i < data.childToParent.length; i++) {
+                        childToParent.set(data.childToParent[i][0], data.childToParent[i][1]);
+                    }
+                    state1 = 0;
+                    state2 = 1; // can only have one state at the beginning
                     displayStates();
                 }
             });
