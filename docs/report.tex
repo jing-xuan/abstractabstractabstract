@@ -58,18 +58,55 @@ $$\infer{s(PC) = ASSIGN\ name}{
   (PC+1,OS,ENV,STORE[ENV(name) \leftarrow v],KONT,TIME,C)}$$
 where $STORE[addr \leftarrow v]$ denotes adding the value $v$ to the set of values at the address $addr$ in the $STORE$
 
-\subsection{Function calls}
+\subsection{Functions}
+\subsubsection{LDF}
 The $LDF$ instruction pushes a closure on the operand stack. It receives the function address and the number of slots the environment needs to be extended by (number of parameters and local variables) as input.
 
-$$\infer{s(PC) = LDF\ \ funcAddr\ \ n}{
+$$\infer{s(PC) = LDF\ \ funcAddr\ \ numToExtend}{
     (PC,OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
     (PC+1,closure.OS,ENV,STORE',KONT,TIME,C)}$$
 where
 $$envAddr=TIME.funcAddr.``env''$$
 $$STORE'=STORE[envAddr \leftarrow ENV]$$
-$$closure=(funcAddr,envAddr,n)$$
+$$closure=(funcAddr,envAddr,numToExtend)$$
 
-Note that the environmnt address is the $TIME$ concatenated with the function address concatenated with the string constant $``env''$. The use of the function address and string constant ensures that the set of values stored at this address are all environnments compatible with this function.
+Note that the environment address is the $TIME$ concatenated with the function address concatenated with the string constant $``env''$. The use of the function address and string constant ensures that the set of values stored at this address are all environnments which are compatible with this function.
+
+\subsubsection{CALL}
+The $CALL$ instruction is more complex. It receives the number of parameters as input, and pops the the parameters and closure from the operand stack. Afterwards, it extends the function environment in the closure, saves the current state as a continuation, and transitions to the new function.
+
+
+$$\infer{s(PC) = CALL\ \ n}{
+    (PC,OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
+    (PC',(),ENV',STORE',KONT',TIME',0)}$$
+where
+$$OS=V_n...V_2.V_1.closure.OS'$$
+$$closure=(PC',funcEnvAddr,numToExtend)$$
+
+$$funcEnv \in STORE(funcEnvAddr)$$
+$$s=|funcEnv|$$
+$$ENV'=funcEnv[s+1 \leftarrow A_1]...[s+numToExtend \leftarrow A_{numToExtend}]$$
+$$STORE_1=[A_1 \leftarrow V_1]...[A_n \leftarrow V_n]$$
+$$A_i=alloc(TIME,C+i) \quad where\ 0 \leq i < numToExtend$$
+
+$$kontAddr = TIME.PC.``kont''$$
+$$envAddr = kontAddr.``env''$$
+$$osAddr = kontAddr.``os''$$
+$$STORE_2=STORE_1[envAddr \leftarrow ENV]$$
+$$STORE_3=STORE_2[osAddr \leftarrow OS]$$
+$$STORE'=STORE_3[kontAddr \leftarrow kontObj]$$
+$$kontObj = (PC+1,osAddr,envAddr,KONT,TIME,C+numToExtend)$$
+$$KONT' = kontAddr$$
+
+$$TIME' = truncate(TIME.PC)$$
+
+Observe that the names added to the environment are in the range $s+1$ to $s+numToExtend$ where $s$ is the original size of the environment. The addresses are allocated by the $alloc$ function that takes in the $TIME$ and counter $C$ and returns the address $TIME.``v''.C$. The string constant $``v''$ denotes that these addreses are meant to store values.
+
+The $CALL$ instruction also stores the current $ENV$, $OS$ and other parameters in the state as part of a continuation object. $KONT'$ is the address pointing to this object and the format of the address includes the current $PC$ which ensures that all possible continuations stored in this address returns to this $PC$. In other words, this ensures that no two continuations returning to different places exists in the same address in the store.
+
+Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then trucating it if necessary to a predefined maximum length. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the next section.
+
+%TODO UPDATE ABOVE
 
 
 
