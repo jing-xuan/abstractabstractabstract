@@ -103,7 +103,7 @@ Note that the names added to the environment are in the range $s+1$ to $s+numToE
 
 The $CALL$ instruction also stores the current $ENV$, $OS$ and other parameters in the state as part of a continuation object. $KONT'$ is the address pointing to this object and the format of the address includes the current $PC$ which ensures that all possible continuations stored in this address returns to this $PC$. In other words, this ensures that no two continuations returning to different places exists in the same address in the store.
 
-Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then trucating it if necessary to a predefined maximum length. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the next section.
+Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then trucating it if necessary to a predefined maximum length. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the analysis section.
 
 %TODO UPDATE ABOVE
 \subsubsection{RTN}
@@ -117,6 +117,14 @@ where
 $$(PC',osAddr,envAddr,KONT',TIME',C') \in STORE(KONT)$$
 $$OS' \in STORE(osAddr)$$
 $$ENV' \in STORE(envAddr)$$
+
+\subsection{Bounding of values}
+To ensure that states are finite, values of numbers are bounded by the constants $MIN\_NUM$ and $MAX\_NUM$, numbers which exceed these bounds during runtime will be replaced with the constant $``unum''$, representing an unknown number. Arithmetic operations involving $``unum''$ will result in $``unum''$. Evaluating expressions such as $``unum'' > 0$ will result in the constant $``ubool''$. The conditional instruction $JOF$ can non-deterministically jump to either address when applied to $``ubool''$.
+
+\subsection{Execution}
+The abstract interpreter receives a Source program as input. It then compiles it into Source virtual machine code. Starting with the state:
+$$(0,(),\emptyset,\emptyset,``'',``0'',0)$$
+It applies the rules above using depth-first search to explore all possible states. These states are then returned to the user and can be visualised as a graph.
 
 
 
