@@ -91,7 +91,7 @@ function get_name (op) {
 }
 
 // pretty-print the program
-var machineCode = "";
+var machineCode = ''
 function print_program (P) {
     let i = 0
     while (i < array_length(P)) {
@@ -119,7 +119,7 @@ function print_program (P) {
         } else {
         }
         console.log(s)
-        machineCode += s + "<br/>";
+        machineCode += s + '<br/>'
     }
 }
 
@@ -770,11 +770,10 @@ function copy_map (map) {
 }
 
 // CESK STARTS HERE
-let functionNames = [];
-let pcToFunctionNames = new Map();
-let functionCalls = new Map(); // Maps function names to return values
-let functionStarts = []; // Store pairs of function names and params
-
+let functionNames = []
+let pcToFunctionNames = new Map()
+let functionCalls = new Map() // Maps function names to return values
+let functionStarts = [] // Store pairs of function names and params
 
 // P is an array that contains an SVML machine program:
 // the op-codes of instructions and their arguments
@@ -948,7 +947,7 @@ function transition (state) {
     M[LDF] = () => {
         const fun_addr = P[PC + 2]
         const num_to_extend = P[PC + 3]
-        const env_addr = TIME + "." + fun_addr + '.env'
+        const env_addr = TIME + '.' + fun_addr + '.env'
         set_store(env_addr, Array.from(ENV))
         const closure = ['CLOSURE']
         closure[1] = fun_addr
@@ -976,8 +975,8 @@ function transition (state) {
         // For function call tracking
         if (new_pc != 8) {
             const fnName = pcToFunctionNames.get(new_pc)
-            console.log("Called " + fnName + " with params ")
-            console.log(params);
+            console.log('Called ' + fnName + ' with params ')
+            console.log(params)
             functionStarts.push([fnName, params])
         }
 
@@ -1037,18 +1036,24 @@ function transition (state) {
         const top_val = OS.pop()
         // console.log("returned " + top_val)
         const kont_addr = KONT
-        
+
         // for tracking
         if (functionStarts.length > 0) {
-            const callingFn = functionStarts.pop();
-            console.log("called function " + callingFn[0] + "with params" +
-            callingFn[1] + " returned " + top_val);
-            if (!(functionCalls.has(callingFn[0]))) {
+            const callingFn = functionStarts.pop()
+            console.log(
+                'called function ' +
+                    callingFn[0] +
+                    'with params' +
+                    callingFn[1] +
+                    ' returned ' +
+                    top_val
+            )
+            if (!functionCalls.has(callingFn[0])) {
                 functionCalls.set(callingFn[0], [[callingFn[1], top_val]])
             } else {
-                var calls = functionCalls.get(callingFn[0]);
-                calls.push([callingFn[1], top_val]);
-                functionCalls.set(callingFn[0], calls);
+                var calls = functionCalls.get(callingFn[0])
+                calls.push([callingFn[1], top_val])
+                functionCalls.set(callingFn[0], calls)
             }
         }
         for (let kont of load_store(kont_addr)) {
@@ -1093,15 +1098,15 @@ function transition (state) {
         PC += 2
         next_states = [[PC, OS, ENV, STORE, KONT, TIME, counter]]
         if (Array.isArray(val)) {
-                console.log("assigned a function to " + string_name)
-                functionNames.push(string_name);
-                pcToFunctionNames.set(val[1], string_name);
+            console.log('assigned a function to ' + string_name)
+            functionNames.push(string_name)
+            pcToFunctionNames.set(val[1], string_name)
             // functions.push
         } else {
-            if (val == "true" || val == false) {
-                console.log("assigned a boolean to " + string_name)
+            if (val == 'true' || val == false) {
+                console.log('assigned a boolean to ' + string_name)
             } else {
-                console.log("assigned a number to " + string_name);
+                console.log('assigned a number to ' + string_name)
             }
         }
     }
@@ -1146,7 +1151,7 @@ function cesk_run () {
     let nextStates = [initialState] // Stack of states to DFS
 
     let nodes = [] // contains [state,children] of visited nodes
-    let feStates = []; // States to pass to frontend
+    let feStates = [] // States to pass to frontend
     let strToIndex = new Map() // Maps stringified state to index in nodes
 
     while (nextStates.length > 0) {
@@ -1173,31 +1178,38 @@ function cesk_run () {
         }
     }
 
-    let parentToChild = new Map();
-    let childToParent = new Map();
-    function nodesToGraph() {
+    let parentToChild = new Map()
+    let childToParent = new Map()
+    function nodesToGraph () {
         for (var i = 0; i < nodes.length; i++) {
-            const parentId = strToIndex.get(stringify_state(nodes[i][0]));
-            let children = [];
+            const parentId = strToIndex.get(stringify_state(nodes[i][0]))
+            let children = []
             // console.log("------------------------ ");
             // console.log(strToIndex.get(stringify_state(nodes[i][0])));
             // console.log("->: ");
             for (var j = 0; j < nodes[i][1].length; j++) {
-                const childId = strToIndex.get(stringify_state(nodes[i][1][j]));
-                childToParent.set(childId, parentId);
-                children.push(childId);
+                const childId = strToIndex.get(stringify_state(nodes[i][1][j]))
+                childToParent.set(childId, parentId)
+                children.push(childId)
             }
-            parentToChild.set(parentId, children);
+            parentToChild.set(parentId, children)
         }
     }
-    nodesToGraph();
-    console.log("these are the function names")
+    nodesToGraph()
+    console.log('these are the function names')
     console.log(functionNames)
-    console.log(Array.from(pcToFunctionNames));
-    console.log(Array.from(functionCalls));
-    console.log(functionStarts);
-    return {"machineCode": machineCode, "states": feStates, "parentToChild": Array.from(parentToChild), "childToParent": Array.from(childToParent),
-            "functionCalls": Array.from(functionCalls), "functionNames": functionNames, "unterminatedCalls": functionStarts};
+    console.log(Array.from(pcToFunctionNames))
+    console.log(Array.from(functionCalls))
+    console.log(functionStarts)
+    return {
+        machineCode: machineCode,
+        states: feStates,
+        parentToChild: Array.from(parentToChild),
+        childToParent: Array.from(childToParent),
+        functionCalls: Array.from(functionCalls),
+        functionNames: functionNames,
+        unterminatedCalls: functionStarts
+    }
 }
 
 // Create state to pass to frontend
@@ -1223,61 +1235,60 @@ function fe_STATE (state) {
     }
 
     function stringifyOS (OS) {
-        var str = "";
+        var str = ''
         for (const o of OS) {
-            str += o + ", ";
+            str += o + ', '
         }
-        if (str == "") {
-            return "-"
+        if (str == '') {
+            return '-'
         }
-        return str;
+        return str
     }
 
     function display_ENV (env) {
-        var str = "";
+        var str = ''
         function log_map (v, k, m) {
-            str += k + " -> " + v + "<br/>";
+            str += k + ' -> ' + v + '<br/>'
 
             // console.log(k + '->' + v)
         }
         // console.log('ENV: ')
         env.forEach(log_map)
         // console.log('')
-        if (str == "") {
-            return "-";
+        if (str == '') {
+            return '-'
         }
-        return str;
+        return str
     }
 
     function display_STORE (store) {
-        var str = "";
+        var str = ''
         function log_map (v, k, m) {
             function stringify_entry (arr) {
                 return arr.map(JSON.stringify).join(' || ')
             }
-            str += k + " -> " + stringify_entry(v) + "<br/>"
+            str += k + ' -> ' + stringify_entry(v) + '<br/>'
             // console.log(k + '-> ' + stringify_entry(v))
         }
         // console.log('STORE:')
         store.forEach(log_map)
         // console.log('')
-        if (str == "") {
-            return "-";
+        if (str == '') {
+            return '-'
         }
-        return str;
+        return str
     }
 
     let [PC, OS, ENV, STORE, KONT, TIME, counter] = state
-    var states = {};
-    states["instr"] = PC + ": " + display_PC(PC);
-    states["OS"] = stringifyOS(OS);
-    states["TIME"] = TIME;
-    states["KONT"] = KONT === "" ? "-" : KONT;
-    states["ENV"] = display_ENV(ENV);
-    states["STORE"] = display_STORE(STORE);
+    var states = {}
+    states['instr'] = PC + ': ' + display_PC(PC)
+    states['OS'] = stringifyOS(OS)
+    states['TIME'] = TIME
+    states['KONT'] = KONT === '' ? '-' : KONT
+    states['ENV'] = display_ENV(ENV)
+    states['STORE'] = display_STORE(STORE)
     // states["STORE"] = "";
-    return states;
-
+    return states
 }
 
 function display_STATE (state) {
@@ -1333,7 +1344,6 @@ function display_STATE (state) {
     console.log('PC: ' + PC + '\t' + display_PC(PC) + '\n')
     console.log('----------------------------------')
 }
-
 
 const MAX_NUM = 10
 const MIN_NUM = -10
