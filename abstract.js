@@ -987,7 +987,7 @@ function transition (state) {
         const kont_os_addr = kont_addr + '.os'
         const kont_os = OS
         const kont = [
-            PC + 1,
+            PC + 2,
             kont_os_addr,
             kont_env_addr,
             KONT,
@@ -1034,10 +1034,10 @@ function transition (state) {
 
     M[RTN] = () => {
         const top_val = OS.pop()
-        // console.log("returned " + top_val)
         const kont_addr = KONT
 
         // for tracking
+        // console.log("returned " + top_val)
         if (functionStarts.length > 0) {
             const callingFn = functionStarts.pop()
             console.log(
@@ -1056,7 +1056,9 @@ function transition (state) {
                 functionCalls.set(callingFn[0], calls)
             }
         }
+
         for (let kont of load_store(kont_addr)) {
+            PC = kont[0]
             const kont_os_addr = kont[1]
             const kont_env_addr = kont[2]
             KONT = kont[3]
@@ -1066,7 +1068,6 @@ function transition (state) {
                 OS.push(top_val)
                 for (let env_arr of load_store(kont_env_addr)) {
                     ENV = new Map(env_arr)
-                    PC = kont[0] + 1
                     next_states.push([PC, OS, ENV, STORE, KONT, TIME, counter])
                 }
             }
