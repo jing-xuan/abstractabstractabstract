@@ -44,7 +44,7 @@ $$(PC,OS,ENV,STORE,KONT,TIME,C)$$
 Similar to the original Source virtual machine, $PC$ is a number representing the program counter and $OS$ is the operand stack itself, storing integers, booleans and closures. $ENV$ maps the names of function parameters and local variables to addresses. Note that these names in practice are actually integers. $STORE$ maps addresses to values. $KONT$ is the address of the continuation. A continuation is similar to a stack frame and it stores the previous $PC,OS,ENV,KONT,TIME$ and $C$. $TIME$ is a string representing the current call stack. It is the concatenation of the locations of the $CALL$ instructions in the call stack and is used to allocate new addresses. $C$ is an incrementing counter that is used alongside $TIME$ to allocate new addresses.
 
 \subsection{Store}
-Importantly, the $STORE$ maps each address (a string) to a set of values. When the store is dereferenced, the interpreter non-deterministically chooses a value from the set of possible values, and transitions to the corresponding new state. When generating the state graph, all such possible transitions are explored.
+Importantly, the $STORE$ maps each address (a string) to a set of values. When the store is dereferenced by any instruction, the interpreter non-deterministically chooses a value from the set of possible values, and transitions to the corresponding new state. When generating the state graph, all such possible transitions are explored.
 
 To illustrate, here are the rules for the load and assignment instructions:
 
@@ -75,7 +75,6 @@ Note that the environment address is the $TIME$ concatenated with the function a
 \subsubsection{CALL}
 The $CALL$ instruction is more complex. It receives the number of parameters as input, and pops the the parameters and closure from the operand stack. Afterwards, it extends the function environment in the closure, saves the current state as a continuation, and transitions to the new function.
 
-
 $$\infer{s(PC) = CALL\ \ n}{
     (PC,OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
     (PC',(),ENV',STORE',KONT',TIME',0)}$$
@@ -100,13 +99,24 @@ $$KONT' = kontAddr$$
 
 $$TIME' = truncate(TIME.PC)$$
 
-Observe that the names added to the environment are in the range $s+1$ to $s+numToExtend$ where $s$ is the original size of the environment. The addresses are allocated by the $alloc$ function that takes in the $TIME$ and counter $C$ and returns the address $TIME.``v''.C$. The string constant $``v''$ denotes that these addreses are meant to store values.
+Note that the names added to the environment are in the range $s+1$ to $s+numToExtend$ where $s$ is the original size of the environment. Also note this rule can be applied with $funcEnv$ being any of the environments stored in the store under that particular address. The addresses are allocated by the $alloc$ function that takes in the $TIME$ and counter $C$ and returns the address $TIME.``v''.C$. The string constant $``v''$ denotes that these addreses are meant to store values.
 
 The $CALL$ instruction also stores the current $ENV$, $OS$ and other parameters in the state as part of a continuation object. $KONT'$ is the address pointing to this object and the format of the address includes the current $PC$ which ensures that all possible continuations stored in this address returns to this $PC$. In other words, this ensures that no two continuations returning to different places exists in the same address in the store.
 
 Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then trucating it if necessary to a predefined maximum length. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the next section.
 
 %TODO UPDATE ABOVE
+\subsubsection{RTN}
+The $RTN$ function returns a value to any of the continuations stored at the address $KONT$.
+
+$$\infer{s(PC) = RTN}{
+    (PC,v.OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
+    (PC',v.OS',ENV',STORE,KONT',TIME',C')}$$
+
+where
+$$(PC',osAddr,envAddr,KONT',TIME',C') \in STORE(KONT)$$
+$$OS' \in STORE(osAddr)$$
+$$ENV' \in STORE(envAddr)$$
 
 
 
