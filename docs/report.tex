@@ -232,6 +232,19 @@ This looping occurs only because the $TIME$ is truncated. If $TIME$ is not trunc
 
 Increasing the value of $MAX\_TIME$ in this example would only lead to a longer chain of states being explored before the same loop is reached.
 
+\subsection{More Complex Example}
+We now demonstrate our interpreter on a more complex program:
+\begin{verbatim}
+  function f(x){
+    return f(x+1);
+  }
+  f(7);
+\end{verbatim}
+Setting $MAX\_TIME$ to 3 and $MAX\_NUM$ to 10 results in the following states:
+\begin{center}
+  \includegraphics[scale=0.7]{complex_graph.png}
+\end{center}
+The interpreter terminates and the branches represent the $LD$ instruction dealing with multiple possible values of x in the store (8, 9, 10 and ``unum'').
 
 \bibliography{refs}
 \bibliographystyle{plain} % We choose the "plain" reference style
