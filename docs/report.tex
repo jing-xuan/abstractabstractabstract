@@ -232,6 +232,8 @@ This looping occurs only because the $TIME$ is truncated. If $TIME$ is not trunc
 
 Increasing the value of $MAX\_TIME$ in this example would only lead to a longer chain of states being explored before the same loop is reached.
 
+From the fact that the abstract interpreter loops and never reaches the $DONE$ instruction, we can conclude that the concrete machine will never reach the $DONE$ instruction as well, this follows from the soundness of our interpreter and shows that the concrete machine will never terminate on this program.
+
 \subsection{More Complex Example}
 We now demonstrate our interpreter on a more complex program:
 \begin{verbatim}
@@ -246,8 +248,23 @@ Setting $MAX\_TIME$ to 3 and $MAX\_NUM$ to 10 results in the following states:
 \end{center}
 The interpreter terminates and the branches represent the $LD$ instruction dealing with multiple possible values of x in the store (8, 9, 10 and ``unum'').
 
+\section{Visualisation}
+We have implemented a frontend for the interpreter that allows users to enter programs and explore states via a graphical interface.
+
+% Can add screenshots and explanation on features and how they were implemented.
+
+\section{Optimisations}
+As an extension, we added automated tracking of function calls, parameters and return values. This can aid with code optimisation as functions that are always called with the same parameters can have those parameters in the function body substituted with constants. Functions that always return the same value can have their calls replaced with constants (assuming no side effects).
+
+The soundness of the abstract interpreter ensures that these optimisations do not change program behaviour. If a value is received or returned by a function in the concrete, then it would be represented by some abstract state. Although the converse is not true and the abstract interpreter may show values that can never be reached by the concrete machine.
+
+% Can add examples here
+
+\section{Conclusion}
+We implemented an abstract interpreter for Source supporting higher-order functions and conditionals. We proved the soundness and decidability of our interpreter and showed how it can be used to analyse programs and apply optimisations. We have also implemented a graphical interface supporting visualisation of the state space. Future extensions might include supporting more features of Source and tracking the bound variables of functions to enable further optimisations such as function inlining. 
+
 \bibliography{refs}
-\bibliographystyle{plain} % We choose the "plain" reference style
+\bibliographystyle{plain}
 
 \end{document}
 
