@@ -50,7 +50,7 @@ async function test (chapter, variant, source_code) {
 }
 
 async function test_source (usercode) {
-  var base_code = await fs.readFile('test.js', 'utf-8')
+  var base_code = await fs.readFile('abstract.js', 'utf-8')
   var test_code = base_code.trim()
   test_code += "\nP = parse_and_compile('" + usercode + "')\n"
   test_code += "print_program(P)\n"
