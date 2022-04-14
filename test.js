@@ -1,8 +1,6 @@
 /* 
 
 Abstract interpreter machine for subset of source
-
-Instructions: press "Run" to evaluate an example expression on full JavaScript mode
               
 The language Source §1- is defined as follows:
 
@@ -47,18 +45,11 @@ const POP = 14
 const ASSIGN = 15 // followed by: index of value in environment
 const JOF = 16 // followed by: jump address
 const GOTO = 17 // followed by: jump address
-const LDF = 18 // followed by: max_stack_size, address, env extensn count
+const LDF = 18 // followed by: max_stack_size, address, env extension count
 const CALL = 19
 const LD = 20 // followed by: index of value in environment
 const RTN = 21
 const DONE = 22
-
-// some auxiliary constants
-// to keep track of the inline data
-
-const LDF_MAX_OS_SIZE_OFFSET = 1
-const LDF_ADDRESS_OFFSET = 2
-const LDF_ENV_EXTENSION_COUNT_OFFSET = 3
 
 // get a the name of an opcode, for debugging
 function get_name (op) {
@@ -781,11 +772,9 @@ function copy_map (map) {
 // CESK STARTS HERE
 let functionNames = [];
 let pcToFunctionNames = new Map();
-let functionCalls = new Map();
-let functionStarts = [];
-// "registers" are the global variables of our machine.
-// These contain primitive values (numbers or boolean
-// values) or arrays of primitive values
+let functionCalls = new Map(); // Maps function names to return values
+let functionStarts = []; // Store pairs of function names and params
+
 
 // P is an array that contains an SVML machine program:
 // the op-codes of instructions and their arguments
@@ -984,15 +973,13 @@ function transition (state) {
         const func_env_addr = closure[2]
         const num_to_extend = closure[3]
 
-
-        // for tracking
+        // For function call tracking
         if (new_pc != 8) {
             const fnName = pcToFunctionNames.get(new_pc)
             console.log("Called " + fnName + " with params ")
             console.log(params);
             functionStarts.push([fnName, params])
         }
-
 
         // Save current state
         const kont_env = Array.from(ENV)
@@ -1159,7 +1146,7 @@ function cesk_run () {
     let nextStates = [initialState] // Stack of states to DFS
 
     let nodes = [] // contains [state,children] of visited nodes
-    let feStates = [];
+    let feStates = []; // States to pass to frontend
     let strToIndex = new Map() // Maps stringified state to index in nodes
 
     while (nextStates.length > 0) {
@@ -1213,6 +1200,7 @@ function cesk_run () {
             "functionCalls": Array.from(functionCalls), "functionNames": functionNames, "unterminatedCalls": functionStarts};
 }
 
+// Create state to pass to frontend
 function fe_STATE (state) {
     function display_PC (pc) {
         const op = P[pc]

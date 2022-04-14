@@ -4,7 +4,13 @@
   "main": "index.js",
   "repository": "git@github.com:jing-xuan/abstractabstractabstract.git",
   "devDependencies": {
-    "js-slang": "^0.5.31",
-    "colors": "^1.4.0"
+    "colors": "^1.4.0",
+    "js-slang": "^0.5.31"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.17.3"
   }
 }
