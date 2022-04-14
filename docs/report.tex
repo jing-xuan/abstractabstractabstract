@@ -168,6 +168,7 @@ To show decidability, we show that the number of states is finite.
 This shows that there are finite states, as each state is evaluated once, the abstract interpreter terminates. This proves decidability.
 
 \section{Results}
+\subsection{Simple Example}
 We now demonstrate our interpreter on a simple, non-terminating program with $MAX\_TIME$ set to 3:
 
 \begin{verbatim}
@@ -199,31 +200,37 @@ Applying our abstract interpreter results in a finite number of states ending wi
   \includegraphics[scale=0.7]{simple_graph.png}
 \end{center}
 The second last state from the bottom is shown here:
-\begin{verbatim}
-  PC:	  21
-  TIME:	0.5.18
-  OS:	  []
-  KONT:	0.5.18.23.kont
-  ENV:	 [0 -> 0.v1]
-  STORE:
-  0.8.env -> []
-  0.5.kont.env -> []
-  0.5.kont.os -> []
-  0.5.kont -> [7,"0.5.kont.os","0.5.kont.env","","0",1]
-  0.5.21.env -> [[0,"0.v1"]]
-  0.v1 -> ["CLOSURE",21,"0.5.21.env",0]
-  0.5.18.kont.env -> [[0,"0.v1"]]
-  0.5.18.kont.os -> []
-  0.5.18.kont -> [20,"0.5.18.kont.os","0.5.18.kont.env","0.5.kont","0.5",0]
-  0.5.18.23.kont.env -> [[0,"0.v1"]]
-  0.5.18.23.kont.os -> []
-  0.5.18.23.kont -> 
-   [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.kont","0.5.18",0] ||
-   [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.23.kont","0.5.18",0]
-  \end{verbatim}
-The only difference between the last state and second last state except that the $PC$ of the last state is 23 and the $OS$ has a single entry, which is the closure [21,0.5.21.env,0]. 
+\begin{small}
+  \begin{verbatim}
+PC:	  21
+TIME:	0.5.18
+OS:	  []
+KONT:	0.5.18.23.kont
+ENV:	 [0 -> 0.v1]
+STORE:
+0.8.env -> []
+0.5.kont.env -> []
+0.5.kont.os -> []
+0.5.kont -> [7,"0.5.kont.os","0.5.kont.env","","0",1]
+0.5.21.env -> [[0,"0.v1"]]
+0.v1 -> ["CLOSURE",21,"0.5.21.env",0]
+0.5.18.kont.env -> [[0,"0.v1"]]
+0.5.18.kont.os -> []
+0.5.18.kont -> [20,"0.5.18.kont.os","0.5.18.kont.env","05.kont","0.5",0]
+0.5.18.23.kont.env -> [[0,"0.v1"]]
+0.5.18.23.kont.os -> []
+0.5.18.23.kont -> 
+ [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.kont","0.5.18",0] ||
+ [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.23.kont","0.5.18",0]
+\end{verbatim}
+\end{small}
+The only difference between the last state and second last state except that the $PC$ of the last state is 23 and the $OS$ has a single entry, which is the closure \verb|[21,0.5.21.env,0]|. 
 
+Observe that the address \verb|0.5.18.23.kont| in the store points a set of 2 continuations. When the $CALL$ instruction executes, it creates a continuation to store the current state. This continuation would be stored at the address \verb|0.5.18.23.kont|, but as the store already contains the same exact continuation at that address, the store is left unchanged. This explains why the states loop.
 
+This looping occurs only because the $TIME$ is truncated. If $TIME$ is not truncated, each call would cause the length of $TIME$ to increase, hence there would not be a loop. Furthermore, if $TIME$ is not truncated, each continuation would have its own unique address.
+
+Increasing the value of $MAX\_TIME$ in this example would only lead to a longer chain of states being explored before the same loop is reached.
 
 
 \bibliography{refs}
