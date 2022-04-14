@@ -246,7 +246,9 @@ Setting $MAX\_TIME$ to 3 and $MAX\_NUM$ to 10 results in the following states:
 \begin{center}
   \includegraphics[scale=0.7]{complex_graph.png}
 \end{center}
-The branches represent the $LD$ instruction dealing with multiple possible values of x in the store (8, 9, 10 and ``unum'').
+The branches result from the $LD$ instruction dealing with multiple possible values of x in the store (8, 9, 10 and ``unum'') sharing the same address.
+
+By increasing $MAX\_TIME$, more addresses can be allocated resulting in less sharing of addresses by values. This improves the accuracy of the approximation. When $MAX\_TIME$ is increased to 6 for this example, the resulting graph no longer has any branches. However, there is still a loop, correctly signifying that the concrete machine would not terminate for this program.
 
 \section{Visualisation}
 We have implemented a frontend for the interpreter that allows users to enter programs and explore states via a graphical interface.
