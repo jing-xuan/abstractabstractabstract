@@ -3,6 +3,10 @@ const { createContext, runInContext, parseError } = require('./hacked-slang/dist
 
 const colors = require('colors/safe');
 const {readFileSync }= require('fs');
+const express = require('express');
+const fs = require('fs').promises;
+
+const app = express();
 
 const DEFAULT_CHAPTER = -1
 const DEFAULT_VARIANT = 'default'
@@ -35,7 +39,7 @@ async function interpret (code, chapter, variant) {
 async function test (chapter, variant, source_code) {
   try {
     test_output = await interpret(source_code, chapter, variant)
-    console.log(test_output)
+    return test_output;
   } catch (error) {
     try {
       console.log(colors.red(parseError(error)))
@@ -45,10 +49,32 @@ async function test (chapter, variant, source_code) {
   }
 }
 
-async function test_source () {
-  const test_case = readFileSync('test.js', { encoding: 'utf-8' }).trim()
-
-  return await test(DEFAULT_CHAPTER, DEFAULT_VARIANT, test_case)
+async function test_source (usercode) {
+  var base_code = await fs.readFile('test.js', 'utf-8')
+  var test_code = base_code.trim()
+  test_code += "\nP = parse_and_compile('" + usercode + "')\n"
+  test_code += "print_program(P)\n"
+  test_code += "cesk_run()\n"
+  var test_output = await test(DEFAULT_CHAPTER, DEFAULT_VARIANT, test_code)
+  return test_output;
 }
 
-test_source()
+app.get("/", function(req, res) {
+  res.sendFile(__dirname + "/views/index.html");
+})
+
+app.get("/runcode", async function(req, res) {
+  const usercode = (req.query.usercode).replace(/(\r\n|\n|\r)/gm, "")
+  // console.log(usercode);
+  var result = await test_source(usercode);
+  // console.log(result);
+  res.status(200).send(result);
+})
+
+var server = app.listen(8888, function() {
+  var host = server.address().address;
+  var port = server.address().port;
+  console.log("listening at %s:%s", host, port);
+})
+
+// console.log(t);
