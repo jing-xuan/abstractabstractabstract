@@ -126,6 +126,43 @@ The abstract interpreter receives a Source program as input. It then compiles it
 $$(0,(),\emptyset,\emptyset,``'',``0'',0)$$
 It applies the rules above using depth-first search to explore all possible states. These states are then returned to the user and can be visualised as a graph.
 
+\section{Analysis}
+To correctness of our abstract interpreter, we have to prove soundness and decidability.
+
+\subsection{Soundness}
+To show soundness, we have to show that if the concrete machine transitions from state $A$ to state $B$, then the abstract machine must transition from some abstract state $A^{\prime}$ to some abstract state $B^{\prime}$. Where $A^{\prime}$ and $B^{\prime}$ are the abstract versions of $A$ and $B$.
+
+There are two important differences between the abstract states and the concrete states. These are ways in which the abstract machine approximates the concrete one.
+
+Firstly, the abstract machine deals with bounded numbers, using the constants ``unum'' and ``ubool'' to represent any number and boolean. Numbers and booleans in the concrete state may be replaced by these unknown values in the abstract. This does not compromise soundness.
+
+Secondly, each address in the abstract machine points to a set of values instead a single value. Another way of seeing this is that values in the concrete store may have to ``share'' an address in the abstract store. For all semantic rules of the concrete machine, the abstract version of the rule accounts for all possible values when dereferencing the store. Hence all of the state transitions in the concrete machine must be represented by a state transistion in the abstract. Hence soundness is preserved here as well.
+
+\subsection{Decidability}
+To show decidability, we show that the number of states is finite. 
+
+$PC$ is bounded by the size of the compiled program, which is finite. 
+
+$TIME$ is a string truncated to a constant length.
+
+$C$ is finite as it is only incremented by the $CALL$ instruction, and that the number of function calls and the sizes of their environments are finite.
+
+Addresses are created only by the $LDF$ and $CALL$ instuctions. They are bounded by $TIME$, the program size, and $C$ which are all finite.
+
+Closures include the $PC$ of the function, the address of its environment and the number of local variables and parameters, all of which are finite.
+
+$OS$ is of finite size (as guaranteed by compiler), storing values which includes bounded numbers, booleans, and closures. Hence number of possible $OS$ is finite.
+
+$ENV$ is finite as names and and addresses are finite.
+
+$KONT$ is finite as it is an address.
+
+Continuations are finite as they store addresss, counters and $TIME$, which are finite.
+
+$STORE$ is finite as as addreses are finite, and it stores bounded numbers, booleans, closures, operand stacks, environments and continuations, all of which are finite.
+
+This shows that there are finite states, as each state is evaluated once, the abstract interpreter terminates. This proves decidability.
+
 
 
 \bibliography{refs}
