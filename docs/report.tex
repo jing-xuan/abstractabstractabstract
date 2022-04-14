@@ -1,6 +1,8 @@
 \documentclass[12pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage{mathpartir}
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
 
 \begin{filecontents}{refs.bib}
 @inproceedings{aam,
@@ -42,6 +44,8 @@ Our abstract interpreter runs on the Source virtual machine code produced by the
 $$(PC,OS,ENV,STORE,KONT,TIME,C)$$
 
 Similar to the original Source virtual machine, $PC$ is a number representing the program counter and $OS$ is the operand stack itself, storing integers, booleans and closures. $ENV$ maps the names of function parameters and local variables to addresses. Note that these names in practice are actually integers. $STORE$ maps addresses to values. $KONT$ is the address of the continuation. A continuation is similar to a stack frame and it stores the previous $PC,OS,ENV,KONT,TIME$ and $C$. $TIME$ is a string representing the current call stack. It is the concatenation of the locations of the $CALL$ instructions in the call stack and is used to allocate new addresses. $C$ is an incrementing counter that is used alongside $TIME$ to allocate new addresses.
+
+Note that all the rules below increment the $PC$ by 1 to advance to the next instruction. In actual implementaion, a single instruction may take up multiple slots, hence incrementing by more than 1 may be necessary.
 
 \subsection{Store}
 Importantly, the $STORE$ maps each address (a string) to a set of values. When the store is dereferenced by any instruction, the interpreter non-deterministically chooses a value from the set of possible values, and transitions to the corresponding new state. When generating the state graph, all such possible transitions are explored.
@@ -103,9 +107,8 @@ Note that the names added to the environment are in the range $s+1$ to $s+numToE
 
 The $CALL$ instruction also stores the current $ENV$, $OS$ and other parameters in the state as part of a continuation object. $KONT'$ is the address pointing to this object and the format of the address includes the current $PC$ which ensures that all possible continuations stored in this address returns to this $PC$. In other words, this ensures that no two continuations returning to different places exists in the same address in the store.
 
-Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then trucating it if necessary to a predefined maximum length. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the analysis section.
+Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then trucating it if necessary to a predefined maximum length of $MAX\_TIME$. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the analysis section.
 
-%TODO UPDATE ABOVE
 \subsubsection{RTN}
 The $RTN$ function returns a value to any of the continuations stored at the address $KONT$.
 
@@ -127,7 +130,7 @@ $$(0,(),\emptyset,\emptyset,``'',``0'',0)$$
 It applies the rules above using depth-first search to explore all possible states. These states are then returned to the user and can be visualised as a graph.
 
 \section{Analysis}
-To correctness of our abstract interpreter, we have to prove soundness and decidability.
+To correctness of our abstract interpreter, we now prove soundness and decidability.
 
 \subsection{Soundness}
 To show soundness, we have to show that if the concrete machine transitions from state $A$ to state $B$, then the abstract machine must transition from some abstract state $A^{\prime}$ to some abstract state $B^{\prime}$. Where $A^{\prime}$ and $B^{\prime}$ are the abstract versions of $A$ and $B$.
@@ -140,28 +143,86 @@ Secondly, each address in the abstract machine points to a set of values instead
 
 \subsection{Decidability}
 To show decidability, we show that the number of states is finite. 
-
-$PC$ is bounded by the size of the compiled program, which is finite. 
-
-$TIME$ is a string truncated to a constant length.
-
-$C$ is finite as it is only incremented by the $CALL$ instruction, and that the number of function calls and the sizes of their environments are finite.
-
-Addresses are created only by the $LDF$ and $CALL$ instuctions. They are bounded by $TIME$, the program size, and $C$ which are all finite.
-
-Closures include the $PC$ of the function, the address of its environment and the number of local variables and parameters, all of which are finite.
-
-$OS$ is of finite size (as guaranteed by compiler), storing values which includes bounded numbers, booleans, and closures. Hence number of possible $OS$ is finite.
-
-$ENV$ is finite as names and and addresses are finite.
-
-$KONT$ is finite as it is an address.
-
-Continuations are finite as they store addresss, counters and $TIME$, which are finite.
-
-$STORE$ is finite as as addreses are finite, and it stores bounded numbers, booleans, closures, operand stacks, environments and continuations, all of which are finite.
+\begin{itemize}
+  \item $PC$ is bounded by the size of the compiled program, which is finite.
+        
+  \item $TIME$ is a string truncated to a constant length.
+        
+  \item $C$ is finite as it is only incremented by the $CALL$ instruction, and as the number of function calls and the sizes of their environments are finite.
+        
+  \item Addresses are created only by the $LDF$ and $CALL$ instuctions. They are bounded by $TIME$, the program size, and $C$ which are all finite.
+        
+  \item Closures include the $PC$ of the function, the address of its environment and the number of local variables and parameters, all of which are finite.
+        
+  \item $OS$ is of finite size (as guaranteed by compiler), storing values which includes bounded numbers, booleans, and closures. Hence number of possible $OS$ is finite.
+        
+  \item $ENV$ is finite as names and and addresses are finite.
+        
+  \item $KONT$ is finite as it is an address.
+        
+  \item Continuations are finite as they store addresss, counters and $TIME$, which are finite.
+        
+  \item $STORE$ is finite as as addreses are finite, and it stores bounded numbers, booleans, closures, operand stacks, environments and continuations, all of which are finite.
+\end{itemize}
 
 This shows that there are finite states, as each state is evaluated once, the abstract interpreter terminates. This proves decidability.
+
+\section{Results}
+We now demonstrate our interpreter on a simple, non-terminating program with $MAX\_TIME$ set to 3:
+
+\begin{verbatim}
+  function f(){
+    return f();
+  }
+  f();
+\end{verbatim}
+Compiling the program results in the following machine code. Note that we have modified the compiler to retain function and variable names.
+
+\begin{verbatim}
+  0: START
+  1: LDF 1 8 1
+  5: CALL 0
+  7: DONE
+  8: LDF 1 21 0
+  12: ASSIGN [0, "f"]
+  14: LDCU
+  15: POP
+  16: LD 0
+  18: CALL 0
+  20: RTN
+  21: LD 0
+  23: CALL 0
+  25: RTN
+\end{verbatim}
+Applying our abstract interpreter results in a finite number of states ending with a loop as shown:
+\begin{center}
+  \includegraphics[scale=0.7]{simple_graph.png}
+\end{center}
+The second last state from the bottom is shown here:
+\begin{verbatim}
+  PC:	  21
+  TIME:	0.5.18
+  OS:	  []
+  KONT:	0.5.18.23.kont
+  ENV:	 [0 -> 0.v1]
+  STORE:
+  0.8.env -> []
+  0.5.kont.env -> []
+  0.5.kont.os -> []
+  0.5.kont -> [7,"0.5.kont.os","0.5.kont.env","","0",1]
+  0.5.21.env -> [[0,"0.v1"]]
+  0.v1 -> ["CLOSURE",21,"0.5.21.env",0]
+  0.5.18.kont.env -> [[0,"0.v1"]]
+  0.5.18.kont.os -> []
+  0.5.18.kont -> [20,"0.5.18.kont.os","0.5.18.kont.env","0.5.kont","0.5",0]
+  0.5.18.23.kont.env -> [[0,"0.v1"]]
+  0.5.18.23.kont.os -> []
+  0.5.18.23.kont -> 
+   [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.kont","0.5.18",0] ||
+   [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.23.kont","0.5.18",0]
+  \end{verbatim}
+The only difference between the last state and second last state except that the $PC$ of the last state is 23 and the $OS$ has a single entry, which is the closure [21,0.5.21.env,0]. 
+
 
 
 

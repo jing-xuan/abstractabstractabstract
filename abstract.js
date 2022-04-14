@@ -1141,6 +1141,7 @@ function transition (state) {
     return next_states
 }
 
+// Explore all states using DFS
 function cesk_run () {
     function stringify_state (state) {
         let copy = [...state] // Shallow copy
@@ -1348,7 +1349,7 @@ function display_STATE (state) {
 
 const MAX_NUM = 10
 const MIN_NUM = -10
-let MAX_TIME = 5 // Maximum length of TIME, will be truncated if exceeding
-let MAX_COUNT = -1 // Number of iterations to run
+let MAX_TIME = 3 // Maximum length of TIME, will be truncated if exceeding
+let MAX_COUNT = -1 // Maximum number of states to explore, set to -1 for no limit
 // cesk_run()
 // print_program(P)
