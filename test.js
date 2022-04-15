@@ -1289,6 +1289,7 @@ function fe_STATE (state) {
     states["TIME"] = TIME;
     states["KONT"] = KONT === "" ? "-" : KONT;
     states["ENV"] = display_ENV(ENV);
+    states["COUNTER"] = counter;
     states["STORE"] = display_STORE(STORE);
     // states["STORE"] = "";
     return states;
