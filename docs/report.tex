@@ -130,7 +130,7 @@ $$(0,(),\emptyset,\emptyset,``'',``0'',0)$$
 It applies the rules above using depth-first search to explore all possible states. These states are then returned to the user and can be visualised as a graph.
 
 \section{Analysis}
-To correctness of our abstract interpreter, we now prove soundness and decidability.
+To prove correctness of our abstract interpreter, we now prove soundness and decidability.
 
 \subsection{Soundness}
 To show soundness, we have to show that if the concrete machine transitions from state $A$ to state $B$, then the abstract machine must transition from some abstract state $A^{\prime}$ to some abstract state $B^{\prime}$. Where $A^{\prime}$ and $B^{\prime}$ are the abstract versions of $A$ and $B$.
