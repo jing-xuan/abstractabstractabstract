@@ -305,6 +305,9 @@
                             <th>TIME</th>
                             <td id = "graphStateTIME"></td>
                         </tr>
+                        <th>COUNTER</th>
+                            <td id = "graphStateCOUNTER"></td>
+                        </tr>
                         <tr>
                             <th>OS</th>
                             <td id = "graphStateOS">-</td>
@@ -336,6 +339,9 @@
                         <tr>
                             <th>TIME</th>
                             <td id = "curStateTIME"></td>
+                        </tr>
+                        <th>COUNTER</th>
+                            <td id = "curStateCOUNTER"></td>
                         </tr>
                         <tr>
                             <th>OS</th>
@@ -377,6 +383,9 @@
                         <tr>
                             <th>TIME</th>
                             <td id = "nextStateTIME"></td>
+                        </tr>
+                        <th>COUNTER</th>
+                            <td id = "nextStateCOUNTER"></td>
                         </tr>
                         <tr>
                             <th>OS</th>
@@ -428,6 +437,7 @@
             $("#" + eleName + "KONT").html(states[stateId]["KONT"]);
             $("#" + eleName + "ENV").html(states[stateId]["ENV"]);
             $("#" + eleName + "STORE").html(states[stateId]["STORE"]);
+            $("#" + eleName + "COUNTER").html(states[stateId]["COUNTER"]);
         }
 
         $("#nextChildState").click(function() {
