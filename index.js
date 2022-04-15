@@ -49,9 +49,10 @@ async function test (chapter, variant, source_code) {
   }
 }
 
-async function test_source (usercode) {
+async function test_source (usercode, max_time) {
   var base_code = await fs.readFile('abstract.js', 'utf-8')
   var test_code = base_code.trim()
+  test_code += "\nMAX_TIME = " + max_time
   test_code += "\nP = parse_and_compile('" + usercode + "')\n"
   test_code += "print_program(P)\n"
   test_code += "cesk_run()\n"
@@ -65,8 +66,10 @@ app.get("/", function(req, res) {
 
 app.get("/runcode", async function(req, res) {
   const usercode = (req.query.usercode).replace(/(\r\n|\n|\r)/gm, "")
-  // console.log(usercode);
-  var result = await test_source(usercode);
+  const maxtime = req.query.max_time
+  // console.log("MAXTIME")
+  // console.log(maxtime);
+  var result = await test_source(usercode, maxtime);
   // console.log(result);
   res.status(200).send(result);
 })

@@ -43,7 +43,7 @@
 
             #codeform {
                 width: 100%;
-                height: 45%;
+                height: 50%;
                 /* background-color: aquamarine; */
                 /* padding-left: 20px; */
                 /* padding-top: 20px; */
@@ -71,6 +71,7 @@
                 border-radius: 5px;
                 box-shadow: 0 3px 3px #333;
                 padding: 8px 50px;
+                margin-top: 10px;
                 color: white;
             }
             #outputs {
@@ -255,6 +256,9 @@
                 // Your code here:
                 <form method = "get" id = "codeform">
                     <textarea rows = "50" cols = "100" name = "code" id = "code" >1 + 1;</textarea>
+                    <br/>
+                    <label for "maxtime" style="padding-bottom: 10px;">Max Time:</label>
+                    <input type = "number" id = "maxtime" name = "maxtime" value = '3'>
                     <input type = "submit" value = "Compile and Run &#x27A4;" id = "submitbtn"/>
                 </form>
                 <div id = "machineCode">
@@ -584,7 +588,8 @@
                 url: "/runcode",
                 type: "get",
                 data: {
-                    'usercode' : $("#code").val()
+                    'usercode' : $("#code").val(),
+                    'max_time' : $("#maxtime").val()
                 },
                 success: function(data) {
                     console.log(data.functionCalls);
