@@ -798,7 +798,8 @@ function transition (state) {
     let KONT = state[4]
     // TIME, concatenated PC of call stack
     let TIME = state[5]
-    // counter for assigning the addresses in the current function
+    // counter for assigning the addresses in the current function,
+    //   represents number of function calls in function body so far
     let counter = state[6]
 
     // Possible next states
@@ -936,12 +937,6 @@ function transition (state) {
         return JSON.parse(JSON.stringify(STORE.get(addr)))
     }
 
-    // gives the address
-    function alloc () {
-        counter += 1
-        return TIME + '.v' + counter
-    }
-
     // load a closure into the OS to either CALL or ASSIGN
     // extend the current env by num_consts and store
     M[LDF] = () => {
@@ -980,20 +975,15 @@ function transition (state) {
             functionStarts.push([fnName, params])
         }
 
+        counter += 1
+
         // Save current state
         const kont_env = Array.from(ENV)
         const kont_addr = TIME + '.' + PC + '.kont'
         const kont_env_addr = kont_addr + '.env'
         const kont_os_addr = kont_addr + '.os'
         const kont_os = OS
-        const kont = [
-            PC + 2,
-            kont_os_addr,
-            kont_env_addr,
-            KONT,
-            TIME,
-            counter + num_to_extend
-        ]
+        const kont = [PC + 2, kont_os_addr, kont_env_addr, KONT, TIME, counter]
         set_store(kont_env_addr, kont_env)
         set_store(kont_os_addr, kont_os)
         set_store(kont_addr, kont)
@@ -1004,7 +994,8 @@ function transition (state) {
             const original_size = new_env.size
             // Extend the new_env by num_to_extend (params.length + locals.length)
             for (let i = 0; i < num_to_extend; i++) {
-                new_env.set(original_size + i, alloc())
+                let addr = TIME + '.v' + counter + '.' + new_pc + '.' + (i + 1)
+                new_env.set(original_size + i, addr)
             }
             // Add parameters
             for (let i = 0; i < num_param; i++) {
@@ -1282,14 +1273,14 @@ function fe_STATE (state) {
     }
 
     let [PC, OS, ENV, STORE, KONT, TIME, counter] = state
-    var states = {};
-    states["instr"] = PC + ": " + display_PC(PC);
-    states["OS"] = stringifyOS(OS);
-    states["TIME"] = TIME;
-    states["KONT"] = KONT === "" ? "-" : KONT;
-    states["ENV"] = display_ENV(ENV);
-    states["COUNTER"] = counter;
-    states["STORE"] = display_STORE(STORE);
+    var states = {}
+    states['instr'] = PC + ': ' + display_PC(PC)
+    states['OS'] = stringifyOS(OS)
+    states['TIME'] = TIME
+    states['KONT'] = KONT === '' ? '-' : KONT
+    states['ENV'] = display_ENV(ENV)
+    states['COUNTER'] = counter
+    states['STORE'] = display_STORE(STORE)
     // states["STORE"] = "";
     return states
 }
@@ -1350,7 +1341,7 @@ function display_STATE (state) {
 
 const MAX_NUM = 10
 const MIN_NUM = -10
-let MAX_TIME = 3 // Maximum length of TIME, will be truncated if exceeding
+let MAX_TIME = 3 // Maximum length of TIME, will be truncated if exceeding. Edited by index.js
 let MAX_COUNT = -1 // Maximum number of states to explore, set to -1 for no limit
 // cesk_run()
 // print_program(P)
