@@ -90,7 +90,7 @@ $$funcEnv \in STORE(funcEnvAddr)$$
 $$s=|funcEnv|$$
 $$ENV'=funcEnv[s+1 \leftarrow A_1]...[s+numToExtend \leftarrow A_{numToExtend}]$$
 $$STORE_1=[A_1 \leftarrow V_1]...[A_n \leftarrow V_n]$$
-$$A_i=alloc(TIME,C+i) \quad where\ 0 \leq i < numToExtend$$
+$$A_i=TIME.``v''.C+1.PC'.i \quad where\ 1 \leq i \leq numToExtend$$
 
 $$kontAddr = TIME.PC.``kont''$$
 $$envAddr = kontAddr.``env''$$
@@ -98,12 +98,12 @@ $$osAddr = kontAddr.``os''$$
 $$STORE_2=STORE_1[envAddr \leftarrow ENV]$$
 $$STORE_3=STORE_2[osAddr \leftarrow OS]$$
 $$STORE'=STORE_3[kontAddr \leftarrow kontObj]$$
-$$kontObj = (PC+1,osAddr,envAddr,KONT,TIME,C+numToExtend)$$
+$$kontObj = (PC+1,osAddr,envAddr,KONT,TIME,C+1)$$
 $$KONT' = kontAddr$$
 
 $$TIME' = truncate(TIME.PC)$$
 
-Note that the names added to the environment are in the range $s+1$ to $s+numToExtend$ where $s$ is the original size of the environment. Also note this rule can be applied with $funcEnv$ being any of the environments stored in the store under that particular address. The addresses are allocated by the $alloc$ function that takes in the $TIME$ and counter $C$ and returns the address $TIME.``v''.C$. The string constant $``v''$ denotes that these addreses are meant to store values.
+Note that the names added to the environment are in the range $s+1$ to $s+numToExtend$ where $s$ is the original size of the environment. Also note this rule can be applied with $funcEnv$ being any of the environments stored in the store under that particular address. The addresses allocated are of the form $TIME.``v''.C+1.PC'.i$. The string constant $``v''$ denotes that these addreses are meant to store values of parameters and local variables. The format of the address ensures that every value stored in that address is meant for the function at $PC'$. This ensures that the abstract interpreter never passes invalid values to functions.
 
 The $CALL$ instruction also stores the current $ENV$, $OS$ and other parameters in the state as part of a continuation object. $KONT'$ is the address pointing to this object and the format of the address includes the current $PC$ which ensures that all possible continuations stored in this address return to this $PC$. In other words, this ensures that no two continuations returning to different places exist in the same address in the store.
 
@@ -148,9 +148,9 @@ To show decidability of reachability of states, we show that the number of state
         
   \item $TIME$ is a string truncated to a constant length.
         
-  \item $C$ is finite as it is only incremented by the $CALL$ instruction, and as the number of function calls and the sizes of their environments are finite.
+  \item $C$ is finite as it is only incremented by the $CALL$ instruction, and as the number of $CALL$ instructions in a single function body is finite.
         
-  \item Addresses are created only by the $LDF$ and $CALL$ instuctions. They are bounded by $TIME$, the program size, and $C$ which are all finite.
+  \item Addresses are created only by the $LDF$ and $CALL$ instuctions. They are bounded by $TIME$, the program size, $C$, and the environment extension count ($numToExtend$) which are all finite.
         
   \item Closures include the $PC$ of the function, the address of its environment and the number of local variables and parameters, all of which are finite.
         
@@ -206,22 +206,22 @@ PC:	  21
 TIME:	0.5.18
 OS:	  []
 KONT:	0.5.18.23.kont
-ENV:	 [0 -> 0.v1]
+ENV:	[0 -> 0.v1.8.1]
 STORE:
 0.8.env -> []
 0.5.kont.env -> []
 0.5.kont.os -> []
 0.5.kont -> [7,"0.5.kont.os","0.5.kont.env","","0",1]
-0.5.21.env -> [[0,"0.v1"]]
-0.v1 -> ["CLOSURE",21,"0.5.21.env",0]
-0.5.18.kont.env -> [[0,"0.v1"]]
+0.5.21.env -> [[0,"0.v1.8.1"]]
+0.v1.8.1 -> ["CLOSURE",21,"0.5.21.env",0]
+0.5.18.kont.env -> [[0,"0.v1.8.1"]]
 0.5.18.kont.os -> []
-0.5.18.kont -> [20,"0.5.18.kont.os","0.5.18.kont.env","05.kont","0.5",0]
-0.5.18.23.kont.env -> [[0,"0.v1"]]
+0.5.18.kont -> [20,"0.5.18.kont.os","0.5.18.kont.env","0.5.kont","0.5",1]
+0.5.18.23.kont.env -> [[0,"0.v1.8.1"]]
 0.5.18.23.kont.os -> []
-0.5.18.23.kont -> 
- [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.kont","0.5.18",0] ||
- [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.23.kont","0.5.18",0]
+0.5.18.23.kont ->
+ [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.kont","0.5.18",1] ||
+ [25,"0.5.18.23.kont.os","0.5.18.23.kont.env","0.5.18.23.kont","0.5.18",1]
 \end{verbatim}
 \end{footnotesize}
 The only difference between the last state and second last state is that the $PC$ of the last state is 23 and the $OS$ has a single entry, which is the closure \verb|[21,0.5.21.env,0]|. 
@@ -242,9 +242,9 @@ We now demonstrate our interpreter on a more complex program:
   }
   f(7);
 \end{verbatim}
-Setting $MAX\_TIME$ to 3 and $MAX\_NUM$ to 10 results in the following states:
+Setting $MAX\_TIME$ to 3 and $MAX\_NUM$ to 10 results in a graph ending with the following states:
 \begin{center}
-  \includegraphics[scale=0.7]{complex_graph.png}
+  \includegraphics[scale=0.6]{complex_graph.png}
 \end{center}
 The branches result from the $LD$ instruction dealing with multiple possible values of x in the store (8, 9, 10 and ``unum'') sharing the same address.
 
