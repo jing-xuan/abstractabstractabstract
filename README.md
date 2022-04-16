@@ -21,4 +21,4 @@
   f(7);
 ```
 
-Note that `MIN_NUM` = -10 and `MAX_NUM` = 10. This can be changed in the bottom of `abstract.js`
+Note that `MIN_NUM` = -10 and `MAX_NUM` = 10. This can be changed at the bottom of `abstract.js`
