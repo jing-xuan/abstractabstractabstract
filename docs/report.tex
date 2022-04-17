@@ -254,10 +254,20 @@ By increasing $MAX\_TIME$, more addresses can be allocated resulting in less sha
 \section{Visualisation}
 We have implemented a frontend for the interpreter that allows users to enter programs and explore states via a graphical interface.
 
+To enable the tracking of states, the relationship between each state and its parent and children states are logged during runtime. This relationship is then sent to the front end of the graphical user interface where it is rendered in two modes, a state tracker where the states can be stepped through as seen below.
+
+\includegraphics[scale=0.1]{ss1.png}
+
+To better show the flow of program, the relationship between states are also shown a graph, which allows for users to select graph nodes and see the full state. The colours indicate the time of the current state, with states in the same time having the same colour. The graph is rendered using Mermaid.js.
+
+\includegraphics[scale=0.1]{ss2.png}
+
 % Can add screenshots and explanation on features and how they were implemented.
 
 \section{Optimisations}
-As an extension, we added automated tracking of function calls, parameters and return values. This can aid with code optimisation as functions that are always called with the same parameters can have those parameters in the function body substituted with constants. Functions that always return the same value can have their calls replaced with constants (assuming no side effects).
+As an extension, we added automated tracking of function calls, parameters and return values. This can aid with code optimisation as functions that are always called with the same parameters can have those parameters in the function body substituted with constants. Functions that always return the same value can have their calls replaced with constants (assuming no side effects). 
+
+\includegraphics[scale=0.1]{ss4.png}
 
 The soundness of the abstract interpreter ensures that these optimisations do not change program behaviour. This is as all values received or returned by a function in the concrete are represented by some abstract state. Although the converse is not true and the abstract interpreter may show values that can never be reached by the concrete machine.
 
@@ -270,4 +280,3 @@ We implemented an abstract interpreter for Source supporting higher-order functi
 \bibliographystyle{plain}
 
 \end{document}
-
