@@ -46,7 +46,7 @@ $$(PC,OS,ENV,STORE,KONT,TIME,C)$$
 
 Similar to the original Source virtual machine, $PC$ is a number representing the program counter and $OS$ is the operand stack itself, storing integers, booleans and closures. $ENV$ maps the names of function parameters and local variables to addresses. Note that these names in practice are actually integers. $STORE$ maps addresses to values. $KONT$ is the address of the continuation. A continuation is similar to a stack frame and it stores the previous $PC,OS,ENV,KONT,TIME$ and $C$. $TIME$ is a string representing the current call stack. It is the concatenation of the locations of the $CALL$ instructions in the call stack and is used to allocate new addresses. $C$ is an incrementing counter that is used alongside $TIME$ to allocate new addresses.
 
-Note that all the rules below increment the $PC$ by 1 to advance to the next instruction. In actual implementaion, a single instruction may take up multiple slots, hence incrementing by more than 1 may be necessary.
+Note that all the rules below increment the $PC$ by 1 to advance to the next instruction. In actual implementation, a single instruction may take up multiple slots, hence incrementing by more than 1 may be necessary.
 
 \subsection{Store}
 Importantly, the $STORE$ maps each address (a string) to a set of values. When the store is dereferenced by any instruction, the interpreter non-deterministically chooses a value from the set of possible values, and transitions to the corresponding new state. When generating the state graph, all such possible transitions are explored.
@@ -75,10 +75,10 @@ $$envAddr=TIME.funcAddr.``env''$$
 $$STORE'=STORE[envAddr \leftarrow ENV]$$
 $$closure=(funcAddr,envAddr,numToExtend)$$
 
-Note that the environment address is the $TIME$ concatenated with the function address concatenated with the string constant $``env''$. The use of the function address and string constant ensures that the set of values stored at this address are all environnments which are compatible with this function.
+Note that the environment address is the $TIME$ concatenated with the function address concatenated with the string constant $``env''$. The use of the function address and string constant ensures that the set of values stored at this address are all environments that are compatible with this function.
 
 \subsubsection{CALL}
-The $CALL$ instruction is more complex. It receives the number of parameters as input and pops the the parameters and closure from the operand stack. Afterwards, it extends the function environment in the closure, saves the current state as a continuation, and transitions to the new function.
+The $CALL$ instruction is more complex. It receives the number of parameters as input and pops the parameters and closure from the operand stack. Afterwards, it extends the function environment in the closure, saves the current state as a continuation, and transitions to the new function.
 
 $$\infer{s(PC) = CALL\ \ n}{
     (PC,OS,ENV,STORE,KONT,TIME,C) \rightarrow \\
@@ -104,11 +104,11 @@ $$KONT' = kontAddr$$
 
 $$TIME' = truncate(TIME.PC)$$
 
-Note that the names added to the environment are in the range $s+1$ to $s+numToExtend$ where $s$ is the original size of the environment. Also note this rule can be applied with $funcEnv$ being any of the environments stored in the store under that particular address. The addresses allocated are of the form $TIME.``v''.C+1.PC'.i$. The string constant $``v''$ denotes that these addreses are meant to store values of parameters and local variables. The format of the address ensures that every value stored in that address is meant for the function at $PC'$. This ensures that the abstract interpreter never passes invalid values to functions.
+Note that the names added to the environment are in the range $s+1$ to $s+numToExtend$ where $s$ is the original size of the environment. Also note this rule can be applied with $funcEnv$ being any of the environments stored in the store under that particular address. The addresses allocated are of the form $TIME.``v''.C+1.PC'.i$. The string constant $``v''$ denotes that these addresses are meant to store values of parameters and local variables. The format of the address ensures that every value stored in that address is meant for the function at $PC'$. This ensures that the abstract interpreter never passes invalid values to functions.
 
-The $CALL$ instruction also stores the current $ENV$, $OS$ and other parameters in the state as part of a continuation object. $KONT'$ is the address pointing to this object and the format of the address includes the current $PC$ which ensures that all possible continuations stored in this address return to this $PC$. In other words, this ensures that no two continuations returning to different places exist in the same address in the store.
+The $CALL$ instruction also stores the current $ENV$, $OS$ and other parameters in the state as part of a continuation object. $KONT'$ is the address pointing to this object and the format of the address includes the current $PC$ which ensures that all possible continuations stored in this address return to this $PC$. In other words, this ensures that no two continuations returning to different places exist at the same address in the store.
 
-Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then trucating it if necessary to a predefined maximum length of $MAX\_TIME$. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the analysis section.
+Finally the value of $TIME'$ is created by appending the current $PC$ to the current $TIME$ then truncating it if necessary to a predefined maximum length of $MAX\_TIME$. This is necessary to ensure that the abstract interpreter terminates, which we will prove in the analysis section.
 
 \subsubsection{RTN}
 The $RTN$ function returns a value to any of the continuations stored at the address $KONT$.
@@ -131,7 +131,7 @@ $$(0,(),\emptyset,\emptyset,``'',``0'',0)$$
 It applies the rules above using depth-first search to explore all possible states. These states are then returned to the user and can be visualised as a graph.
 
 \section{Analysis}
-To prove correctness of our abstract interpreter, we now prove soundness and decidability.
+To prove the correctness of our abstract interpreter, we now prove soundness and decidability.
 
 \subsection{Soundness}
 To show soundness, we have to show that if the concrete machine transitions from state $A$ to state $B$, then the abstract machine must transition from some abstract state $A^{\prime}$ to some abstract state $B^{\prime}$. Where $A^{\prime}$ and $B^{\prime}$ are the abstract versions of $A$ and $B$.
@@ -140,7 +140,7 @@ There are two important differences between the abstract states and the concrete
 
 Firstly, the abstract machine deals with bounded numbers, using the constants ``unum'' and ``ubool'' to represent any number and boolean. Numbers and booleans in the concrete state may be replaced by these unknown values in the abstract. This does not compromise soundness.
 
-Secondly, each address in the abstract machine points to a set of values instead of a single value. Another way of seeing this is that values in the concrete store may have to ``share'' an address in the abstract store. For all semantic rules of the concrete machine, the abstract version of the rule accounts for all possible values when dereferencing the store. Hence all of the state transitions in the concrete machine must be represented by a state transistion in the abstract. Hence soundness is preserved here as well.
+Secondly, each address in the abstract machine points to a set of values instead of a single value. Another way of seeing this is that values in the concrete store may have to ``share'' an address in the abstract store. For all semantic rules of the concrete machine, the abstract version of the rule accounts for all possible values when dereferencing the store. Hence all of the state transitions in the concrete machine must be represented by a state transition in the abstract. Hence soundness is preserved here as well.
 
 \subsection{Decidability}
 To show decidability of reachability of states, we show that the number of states is finite. 
@@ -151,19 +151,19 @@ To show decidability of reachability of states, we show that the number of state
         
   \item $C$ is finite as it is only incremented by the $CALL$ instruction, and as the number of $CALL$ instructions in a single function body is finite.
         
-  \item Addresses are created only by the $LDF$ and $CALL$ instuctions. They are bounded by $TIME$, the program size, $C$, and the environment extension count ($numToExtend$) which are all finite.
+  \item Addresses are created only by the $LDF$ and $CALL$ instructions. They are bounded by $TIME$, the program size, $C$, and the environment extension count ($numToExtend$) which are all finite.
         
   \item Closures include the $PC$ of the function, the address of its environment and the number of local variables and parameters, all of which are finite.
         
   \item $OS$ is of finite size (as guaranteed by compiler), storing values which include bounded numbers, booleans, and closures. Hence number of possible $OS$ is finite.
         
-  \item $ENV$ is finite as names and and addresses are finite.
+  \item $ENV$ is finite as names and addresses are finite.
         
   \item $KONT$ is finite as it is an address.
         
-  \item Continuations are finite as they store addresss, counters and $TIME$, which are finite.
+  \item Continuations are finite as they store addresses, counters and $TIME$, which are finite.
         
-  \item $STORE$ is finite as as addreses are finite, and it stores bounded numbers, booleans, closures, operand stacks, environments and continuations, all of which are finite.
+  \item $STORE$ is finite as addreses are finite, and it stores bounded numbers, booleans, closures, operand stacks, environments and continuations, all of which are finite.
 \end{itemize}
 
 This shows that there are finite states, as each state is evaluated once, the abstract interpreter terminates. This proves decidability.
@@ -254,24 +254,26 @@ By increasing $MAX\_TIME$, more addresses can be allocated resulting in less sha
 \section{Visualisation}
 We have implemented a frontend for the interpreter that allows users to enter programs and explore states via a graphical interface.
 
-To enable the tracking of states, the relationship between each state and its parent and children states are logged during runtime. This relationship is then sent to the front end of the graphical user interface where it is rendered in two modes, a state tracker where the states can be stepped through as seen below.
+To enable the tracking of states, the relationship between each state and its parent and children states are logged during runtime. This relationship is then sent to the front end of the graphical user interface where it is rendered in two modes. The first mode is a state tracker where the states and their children can be stepped through as seen below.
 
-\includegraphics[scale=0.1]{ss1.png}
+\begin{center}
+  \frame{\includegraphics[scale=0.1]{ss1.png}}
+\end{center}
 
 To better show the flow of program, the relationship between states are also shown a graph, which allows for users to select graph nodes and see the full state. The colours indicate the time of the current state, with states in the same time having the same colour. The graph is rendered using Mermaid.js.
 
-\includegraphics[scale=0.1]{ss2.png}
-
-% Can add screenshots and explanation on features and how they were implemented.
+\begin{center}
+  \frame{\includegraphics[scale=0.1]{ss2.png}}
+\end{center}
 
 \section{Optimisations}
 As an extension, we added automated tracking of function calls, parameters and return values. This can aid with code optimisation as functions that are always called with the same parameters can have those parameters in the function body substituted with constants. Functions that always return the same value can have their calls replaced with constants (assuming no side effects). 
 
-\includegraphics[scale=0.1]{ss4.png}
+\begin{center}
+  \frame{\includegraphics[scale=0.1]{ss4.png}}
+\end{center}
 
 The soundness of the abstract interpreter ensures that these optimisations do not change program behaviour. This is as all values received or returned by a function in the concrete are represented by some abstract state. Although the converse is not true and the abstract interpreter may show values that can never be reached by the concrete machine.
-
-% Can add examples here
 
 \section{Conclusion}
 We implemented an abstract interpreter for Source supporting higher-order functions and conditionals. We proved the soundness and decidability of our interpreter and showed how it can be used to analyse programs and apply optimisations. We have also implemented a graphical interface supporting visualisation of the state-space. Future extensions might include supporting more features of Source and tracking the bound variables of functions to enable further optimisations such as function inlining. 

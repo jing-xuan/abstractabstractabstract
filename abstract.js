@@ -23,8 +23,6 @@ unop    ::= !
 params  ::= ε | name ( , name ) . . .
 */
 
-const { param } = require("express/lib/request")
-
 // OP-CODES
 
 // op-codes of machine instructions, used by compiler
@@ -776,8 +774,7 @@ let functionNames = []
 let pcToFunctionNames = new Map()
 let functionCalls = new Map() // Maps function names to return values
 let functionStarts = [] // Store pairs of function names and params
-let functionTracker = new Map() // store the function calls in format: KONT, [[params], return]
-let KontToName = new Map() // store the KONT to fn name
+
 // P is an array that contains an SVML machine program:
 // the op-codes of instructions and their arguments
 let P = []
@@ -970,6 +967,13 @@ function transition (state) {
         const func_env_addr = closure[2]
         const num_to_extend = closure[3]
 
+        // For function call tracking
+        if (new_pc != 8) {
+            const fnName = pcToFunctionNames.get(new_pc)
+            console.log('Called ' + fnName + ' with params ')
+            console.log(params)
+            functionStarts.push([fnName, params])
+        }
 
         counter += 1
 
@@ -983,25 +987,6 @@ function transition (state) {
         set_store(kont_env_addr, kont_env)
         set_store(kont_os_addr, kont_os)
         set_store(kont_addr, kont)
-
-
-        // For function call tracking
-        if (new_pc != 8) {
-            const fnName = pcToFunctionNames.get(new_pc)
-            console.log('Called ' + fnName + ' with params ')
-            console.log(params)
-            functionStarts.push([fnName, params])
-            // KontToName.set(kont_addr, fnName);
-        }
-
-        // KontToName.set(kont_addr, pcToFunctionNames.get(new_pc));
-        // if (functionTracker.has(kont_addr)) {
-        //     let fnArr = functionTracker.get(kont_addr);
-        //     fnArr.push([params, "unterminated"])
-        //     functionTracker.set(kont_addr, fnArr)
-        // } else {
-        //     functionTracker.set([[params, "unterminated"]])
-        // }
 
         function cont (func_env_arr) {
             // Make new env
